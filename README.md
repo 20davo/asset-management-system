@@ -1,105 +1,143 @@
-# Asset Management Web App
+# Asset Management System
 
-This application helps companies keep better control over their equipment by making each asset easier to track throughout its everyday lifecycle. It is built with React, ASP.NET Core Web API, and PostgreSQL.
+[![CI](https://github.com/20davo/asset-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/20davo/asset-management-system/actions/workflows/ci.yml)
+![.NET 8](https://img.shields.io/badge/.NET_8-512BD4?logo=dotnet&logoColor=white)
+![React 19](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?logo=postgresql&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white)
 
-## Project overview
+An internal web app for tracking company equipment. It answers the three questions a small IT team asks every week. What do we own? Who has it right now? When is it coming back?
 
-At its core, the project follows the structure of a focused internal asset management system. It brings together authentication, role-based access, equipment management, asset statuses, and assignment workflows in a way that reflects how a real internal tool could work. In this portfolio version, the focus is on showing these full-stack features through practical CRUD operations and clear user-admin responsibilities.
+The idea came from a real gap. Spreadsheets fall apart once more than a few people touch them, and enterprise asset platforms cost more than a small team can justify. This app sits between the two. It follows each asset from checkout to return, without the price tag or the setup work of a full platform.
 
-### Core capabilities
+Two roles split the work. Regular users browse the inventory and check assets out and back in. Admins manage the assets, the users, and the full assignment history.
 
-**Equipment management**
-
-- inventory overview for company assets
-- asset details with status, assignment actions, and history
-- protected equipment image uploads
-- shareable filters, warning filters, and sortable table headers
-
-**Assignment workflow**
-
-- user-facing `My Items` page for assigned and returned assets
-- asset checkout and return flow for regular users
-- assignment history with active and returned records
-- due-date based tracking for assigned assets
-
-**Admin control**
-
-- admin pages for users, user details, and assignment activity
-- admin-only equipment creation, editing, deletion, and maintenance actions
-- admin assignment flow for assigning assets to regular users
-- user management for profile data, roles, and account removal
-
-**Access and user experience**
-
-- JWT-based login for protected application pages
-- role-based access for regular users and admins
-- password change flow for signed-in users
-- profile page and persisted light/dark appearance settings
-
-> **Note:** This project is currently designed as a focused internal equipment and assignment tracker, but it can be expanded into a broader asset management system in the future.
+I built it as a full-stack portfolio project with ASP.NET Core 8, React 19 with TypeScript, and PostgreSQL. The whole stack runs in Docker Compose, in development mode and in a production-like mode behind Nginx.
 
 ## Demo
 
-A 6-minute walkthrough of the main application workflows is available here: [Watch the demo](https://youtu.be/dxP30sKYmxA).
+Watch the [6-minute video walkthrough](https://youtu.be/dxP30sKYmxA) of the main workflows.
 
-The screenshots below show the main app screens and admin-facing flows.
+| Inventory | Asset details |
+| --- | --- |
+| ![Inventory page](./docs/screenshots/inventory.png) | ![Asset details page](./docs/screenshots/details.png) |
 
-### Login
+<details>
+<summary>More screenshots (login, user management, account settings)</summary>
 
 ![Login page](./docs/screenshots/login.png)
 
-### Inventory
-
-![Inventory page](./docs/screenshots/inventory.png)
-
-### Asset Details
-
-![Asset details page](./docs/screenshots/details.png)
-
-### User Management
-
 ![User management page](./docs/screenshots/users.png)
-
-### Account Settings
 
 ![Account settings page](./docs/screenshots/account.png)
 
-## Quick start
+</details>
 
-Create a root `.env` file from the example, then start the local development stack:
+## Features
 
-```powershell
-Copy-Item .env.example .env
+- JWT login with two roles (admin and regular user), enforced in the API, not only in the UI
+- Equipment inventory with search, filters, due-date warnings, card and list views, and sortable columns
+- Checkout and return flow with due dates, notes, and complete assignment history
+- Admin tools for creating, editing, and deleting assets, a maintenance state, and assigning assets to users
+- User management with role editing and protection rules, including for the last admin account
+- A `My Items` page where users see their active and returned assets
+- Equipment image upload with strict validation, served only to signed-in users
+- Bilingual UI (English and Hungarian) with light and dark appearance
+- Registration, login rate limiting, and a bootstrap admin account controlled by environment settings
+
+## Engineering highlights
+
+The parts of the codebase that go beyond basic CRUD:
+
+- **Role changes take effect immediately.** Token validation re-checks the user's role in the database on every request ([ServiceCollectionExtensions.cs](./api/AssetManagement/AssetManagement.Api/Extensions/ServiceCollectionExtensions.cs)). A removed admin role locks the user out right away instead of when the old JWT expires.
+- **Defensive upload pipeline.** Images are validated by size, extension, content type, and file signature (magic bytes), stored under random names, and served through an authenticated endpoint instead of public static files ([EquipmentImageService.cs](./api/AssetManagement/AssetManagement.Api/Services/EquipmentImageService.cs)).
+- **One result pattern across the API.** Services return a `ServiceResult` with a machine-readable code. Controllers turn it into the right HTTP response, and the frontend maps the same code to an English or Hungarian message ([ServiceResult.cs](./api/AssetManagement/AssetManagement.Api/Services/ServiceResult.cs), [apiMessages.ts](./frontend/src/utils/apiMessages.ts)).
+- **Same-origin production mode.** In the production-like stack, Nginx serves the built frontend and proxies `/api` and `/uploads`, and the API and database are not published on host ports at all ([compose.prod.yaml](./compose.prod.yaml)).
+- **Fail-fast configuration.** The API refuses to start with a placeholder JWT key or an empty CORS origin list, so a misconfigured deployment fails loudly instead of running insecurely.
+- **Login rate limiting.** A fixed-window limiter per IP and path protects the auth endpoints and returns structured JSON `429` responses.
+- **Shareable list state.** Search, filters, sorting, and view mode live in the URL query string, so any filtered view survives a refresh and can be shared as a link.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    B[Browser] -->|"localhost:8080"| N["Nginx<br>serves built React app"]
+    N -->|"/api"| A["ASP.NET Core 8 API"]
+    N -->|"/uploads"| A
+    A --> D[("PostgreSQL 16")]
+    A --> V[/"uploads volume"/]
+```
+
+The diagram shows the production-like mode. The development stack has no Nginx. There the Vite dev server runs on port 5173 and calls the API directly on port 5071, with CORS configured for it.
+
+Backend requests flow through thin controllers into a service layer behind interfaces, which uses EF Core with PostgreSQL. Responses use DTOs, so EF entities never leave the API.
+
+```text
+api/AssetManagement/      ASP.NET Core solution (API project + xUnit test project)
+frontend/                 React + TypeScript app (Vite)
+compose.yaml              development stack
+compose.prod.yaml         production-like overrides (Nginx, no exposed API/DB ports)
+.github/workflows/ci.yml  CI pipeline
+```
+
+## Getting started
+
+You need Docker Desktop (or Docker Engine with Compose).
+
+```sh
+cp .env.example .env
 docker compose up --build
 ```
 
-Then try the app in your browser at `http://localhost:5173`.
-
-The example `.env` enables a local bootstrap admin so the demo is usable right away:
+Open `http://localhost:5173`. The example values work for local development out of the box, including a bootstrap admin account:
 
 - email: `admin@assetmanagement.local`
 - password: `Admin123!`
 
-Use this admin account to add the first assets. Public registration creates regular user accounts only.
+EF Core migrations run automatically on startup, and the bootstrap admin is created from the `.env` values. Public registration creates regular user accounts only.
 
-## Tech stack
+### Production-like mode
 
-| Area | Technologies |
-| --- | --- |
-| Frontend | React, TypeScript, Vite |
-| Backend API | ASP.NET Core 8 Web API, Entity Framework Core |
-| Database | PostgreSQL |
-| Containers | Docker Compose |
-| Production-like hosting | Nginx for serving the built frontend |
-| Testing and CI | xUnit backend tests, Vitest frontend tests, GitHub Actions |
+```sh
+docker compose -f compose.yaml -f compose.prod.yaml up --build
+```
 
-## Backend API
+Open `http://localhost:8080`. In this mode the frontend is a static build served by Nginx, everything runs on one origin, registration is disabled, and login rate limiting is on.
 
-The backend provides a JSON API under `/api` and uses JWT Bearer authentication for protected routes.
+## Configuration
 
-Most responses use DTOs, so the API does not return EF Core entities directly. Equipment image uploads use `multipart/form-data`. Most other endpoints use JSON request bodies.
+All settings come from a root `.env` file, documented in [.env.example](./.env.example). The main groups:
 
-In this project, a `checkout` means an asset assignment record. It stores which user has an asset, when it was assigned, the due date, and when it was returned.
+- host ports and PostgreSQL credentials
+- JWT key, issuer, and audience (the API does not start without a real key)
+- registration and bootstrap admin switches
+- login rate limit settings
+- CORS origins
+
+Database data, uploaded images, and ASP.NET Data Protection keys live in named Docker volumes, so they survive container recreation.
+
+## Tests and CI
+
+- **Backend, 21 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
+- **Frontend, 14 Vitest tests.** API error and message mapping plus shared feedback component behavior, written with Testing Library.
+
+GitHub Actions runs on every push and pull request: backend build and tests, then frontend lint with zero warnings allowed, typecheck, tests, and a production build.
+
+```sh
+# backend
+cd api/AssetManagement && dotnet test
+
+# frontend
+cd frontend && npm run test
+```
+
+## API overview
+
+The API serves JSON under `/api` with JWT Bearer authentication. In this project a `checkout` is one assignment record. It stores which user has an asset, from when, with what due date, and when it was returned.
+
+<details>
+<summary>Endpoint reference</summary>
 
 ### Authentication
 
@@ -109,33 +147,29 @@ In this project, a `checkout` means an asset assignment record. It stores which 
 | `POST` | `/api/auth/login` | Public | Sign in and receive a JWT |
 | `POST` | `/api/auth/change-password` | Signed-in users | Change the current user's password |
 
-Registration is controlled by environment settings. Local development can allow public sign-up, while the production-like demo can work as a private internal app.
-
 ### Equipment
 
 | Method | Endpoint | Access | Purpose |
 | --- | --- | --- | --- |
 | `GET` | `/api/equipment` | Signed-in users | List inventory items |
 | `GET` | `/api/equipment/{id}` | Signed-in users | Get asset details |
-| `POST` | `/api/equipment` | Admin | Create an asset, optionally with an uploaded image |
+| `POST` | `/api/equipment` | Admin | Create an asset, optionally with an image |
 | `PUT` | `/api/equipment/{id}` | Admin | Update asset metadata and image |
 | `DELETE` | `/api/equipment/{id}` | Admin | Delete an asset if it is not assigned |
 | `POST` | `/api/equipment/{id}/checkout` | Signed-in users | Create an asset assignment |
-| `POST` | `/api/equipment/{id}/return` | Assigned user or admin | Return an assigned asset and close the assignment |
-| `POST` | `/api/equipment/{id}/mark-maintenance` | Admin | Mark an available asset as under maintenance |
+| `POST` | `/api/equipment/{id}/return` | Assigned user or admin | Return an asset and close the assignment |
+| `POST` | `/api/equipment/{id}/mark-maintenance` | Admin | Move an available asset to maintenance |
 | `POST` | `/api/equipment/{id}/mark-available` | Admin | Move a maintenance asset back to available |
 | `GET` | `/uploads/equipment/{fileName}` | Signed-in users | Load a protected equipment image |
-
-Uploaded equipment images are checked by size, extension, content type, and file signature before they are stored.
 
 ### Asset assignments
 
 | Method | Endpoint | Access | Purpose |
 | --- | --- | --- | --- |
-| `GET` | `/api/checkout` | Admin | List all asset assignment records |
-| `GET` | `/api/checkout/{id}` | Admin | Get one asset assignment record |
-| `GET` | `/api/checkout/user/{userId}` | Admin | List a user's asset assignment history |
-| `GET` | `/api/checkout/my` | Signed-in users | List the current user's asset assignment history |
+| `GET` | `/api/checkout` | Admin | List all assignment records |
+| `GET` | `/api/checkout/{id}` | Admin | Get one assignment record |
+| `GET` | `/api/checkout/user/{userId}` | Admin | List a user's assignment history |
+| `GET` | `/api/checkout/my` | Signed-in users | List the current user's assignment history |
 
 ### Users
 
@@ -144,322 +178,34 @@ Uploaded equipment images are checked by size, extension, content type, and file
 | `GET` | `/api/users` | Admin | List users |
 | `GET` | `/api/users/{id}` | Admin | Get one user |
 | `PUT` | `/api/users/{id}` | Admin | Update name, email, and role |
-| `DELETE` | `/api/users/{id}` | Admin | Delete a user and clean up related asset assignments |
+| `DELETE` | `/api/users/{id}` | Admin | Delete a user and their assignment records |
 
-The API prevents deleting the last admin account. It also blocks admins from removing their own admin role from the user-management page.
+</details>
 
-### API design notes
+Some of the rules the API enforces on top of the endpoint list:
 
-- authentication uses short-lived JWTs
-- role checks happen in the API, not only in the frontend
-- admin role changes are checked against the current database state
-- image files are served through an authenticated API route instead of public static files
-- EF Core migrations run automatically on startup for the local/demo workflow
-- Swagger is available in development mode
+- the last admin account cannot be deleted, and admins cannot remove their own admin role
+- assets with an active assignment cannot be deleted
+- admins assign assets to regular users and cannot assign assets to themselves
+- Swagger UI is available in development mode
 
-## Repository structure
+## Known limitations
 
-- [compose.yaml](./compose.yaml): local development Docker stack
-- [compose.prod.yaml](./compose.prod.yaml): production-like Docker override
-- [frontend/Dockerfile](./frontend/Dockerfile): frontend dev container
-- [frontend/Dockerfile.prod](./frontend/Dockerfile.prod): production-like frontend build and serve container
-- [frontend/nginx.conf](./frontend/nginx.conf): frontend reverse proxy config for the production-like path
-- [api/AssetManagement/AssetManagement.Api/Dockerfile](./api/AssetManagement/AssetManagement.Api/Dockerfile): API container build
-- [.env.example](./.env.example): example root environment file for Docker Compose
+This is a portfolio project, so some production decisions are intentionally simple. These are the trade-offs I know about and the direction I would take next:
 
-## Docker workflows
-
-The repository currently supports two container workflows.
-
-### 1. Local development stack
-
-The default [compose.yaml](./compose.yaml) is the local development setup:
-
-- frontend runs with the Vite dev server
-- API is published directly to a host port
-- PostgreSQL is published directly to a host port
-- public registration can stay enabled
-- login rate limiting is off by default
-
-Start it from the repository root:
-
-```powershell
-docker compose up --build
-```
-
-Run in the background:
-
-```powershell
-docker compose up --build -d
-```
-
-Default local endpoints:
-
-- frontend: `http://localhost:5173`
-- API: `http://localhost:5071`
-- PostgreSQL from host tools: `localhost:5433`
-
-### 2. Production-like stack
-
-The production-like path uses [compose.yaml](./compose.yaml) together with [compose.prod.yaml](./compose.prod.yaml).
-
-In this mode:
-
-- frontend is built and served from Nginx
-- frontend and API work through the same origin
-- `/api` is proxied to the ASP.NET API
-- `/uploads` is proxied to the protected equipment image endpoint
-- API and PostgreSQL are no longer published to host ports
-- public registration is disabled by default
-- login rate limiting is enabled by default
-- forwarded headers are enabled for the reverse proxy
-
-Start it from the repository root:
-
-```powershell
-docker compose -f compose.yaml -f compose.prod.yaml up --build
-```
-
-Run in the background:
-
-```powershell
-docker compose -f compose.yaml -f compose.prod.yaml up --build -d
-```
-
-Default production-like endpoint:
-
-- app entry point: `http://localhost:8080`
-
-In the production-like setup, the browser uses:
-
-- frontend: `http://localhost:8080`
-- API through the same app origin: `http://localhost:8080/api`
-- protected image requests through the same app origin: `http://localhost:8080/uploads/...`
-
-## Local environment setup
-
-Create a root `.env` file based on [`.env.example`](./.env.example).
-
-The root `.env` is used by Docker Compose for local values:
-
-- host ports
-- PostgreSQL credentials
-- frontend runtime settings
-- JWT settings
-- registration flags
-- login rate limit settings
-- bootstrap admin values
-- CORS origins
-
-The root `.env` is ignored by Git and should stay local.
-
-### Important local variables
-
-Local development examples in [`.env.example`](./.env.example):
-
-- `JWT_KEY`
-- `REGISTRATION_ENABLED`
-- `VITE_REGISTRATION_ENABLED`
-- `AUTH_RATE_LIMIT_ENABLED`
-- `BOOTSTRAP_ADMIN_ENABLED`
-
-Production-like override examples are configured through `compose.prod.yaml` defaults such as:
-
-- `REGISTRATION_ENABLED_PROD=false`
-- `VITE_REGISTRATION_ENABLED_PROD=false`
-- `AUTH_RATE_LIMIT_ENABLED_PROD=true`
-
-## Authentication and access behavior
-
-The app currently uses JWT Bearer authentication stored in browser `localStorage`.
-
-Current behavior:
-
-- expired or invalid JWT responses (`401`) clear the local session and redirect the user back to login
-- forbidden responses (`403`) redirect the user to the app root and show a permission error message
-- unknown routes redirect unauthenticated visitors back into the login flow
-- unknown routes show a dedicated not-found page only for authenticated users
-- visiting `/login` or `/register` while already logged in triggers an automatic logout
-
-Current signed-in navigation:
-
-- regular users can access `Inventory`, `My Items`, `Profile`, and `Settings`
-- admins can access `Inventory`, `Users`, `Assignment Log`, `Profile`, and `Settings`
-- the profile menu contains `Profile`, `Settings`, and `Logout`
-- signed-in users can change their own password from the profile area
-
-### Registration behavior
-
-Registration is environment-controlled.
-
-Local development:
-
-- registration can stay enabled
-- login and register links are visible in the guest navigation
-
-Production-like mode:
-
-- registration is disabled by default
-- the register page is not available
-- guest navigation hides both login and register links for a cleaner private demo flow
-
-## App flows
-
-### User flow
-
-Regular users mainly work in these views:
-
-- `Inventory`: browse company equipment and open asset details
-- `My Items`: see assigned assets, due dates, and returned assets
-- `Profile`: review signed-in account details
-- `Settings`: change language and appearance preferences
-
-Regular users can:
-
-- view equipment
-- check out available equipment for themselves
-- return their own assigned assets
-- review their own assignment history
-- change their own password
-
-### Admin flow
-
-Admins have everything regular users have, plus:
-
-- `Users`: list regular users and open user detail pages
-- `User details`: see a selected user's assigned assets and returned assets
-- user profile editing for display name, email, and role
-- user deletion with related asset assignment cleanup
-- `Assignment Log`: review active and returned asset assignments
-- inventory create/edit/delete and maintenance actions
-- asset assignment to regular users
-
-Admins do not assign assets to themselves through the admin assignment flow. Instead, they assign available assets to regular users.
-
-Admin role changes are checked against the current database state. This means removed admin access takes effect without waiting for the old JWT to expire.
-
-## Main pages
-
-- `/`: inventory
-- `/equipment/:id`: asset details
-- `/my-items`: signed-in user's assigned assets and history
-- `/users`: admin user list
-- `/users/:userId`: admin user detail view
-- `/all-checkouts`: admin assignment log
-- `/profile`: signed-in user profile
-- `/settings`: signed-in user settings
-- `/profile/security`: signed-in user password change
-
-Legacy redirects still exist for:
-
-- `/my-checkouts` -> `/my-items`
-- `/users/:userId/checkouts` -> `/users/:userId`
-
-## Image uploads
-
-Equipment images are no longer served as public static files.
-
-Current behavior:
-
-- uploaded files are stored in a Docker volume
-- image URLs are resolved through authenticated API access
-- protected image loading uses the logged-in user token
-- unauthorized image requests follow the same session-expired flow as the rest of the app
-
-## List state and sorting
-
-The main list pages keep search, filters, warning filters, view mode, and table sorting in query parameters.
-
-This currently applies to:
-
-- inventory
-- assignment log
-- users
-- my items
-- user details
-
-Examples:
-
-- `/all-checkouts?state=active&warning=overdue&view=list`
-- `/users?search=anna&role=User&sort=name&dir=asc`
-- `/my-items?current-view=cards&current-warning=dueSoon`
-
-In list view, sorting is handled from the table headers instead of a separate sort dropdown. Columns with actions are not sortable.
-
-## Persistence
-
-The Docker setup uses named volumes for:
-
-- PostgreSQL data
-- uploaded equipment images
-- ASP.NET Data Protection keys
-
-This means the following survive container recreation:
-
-- database records
-- uploaded files
-- ASP.NET protection keys
-
-<!--
-## Daily Docker commands
-
-Show running services:
-
-```powershell
-docker compose ps
-```
-
-See logs:
-
-```powershell
-docker compose logs -f
-```
-
-Stop and remove containers:
-
-```powershell
-docker compose down
-```
-
-Stop containers and remove named volumes too:
-
-```powershell
-docker compose down -v
-```
--->
-
-## Implementation notes
-
-- the backend applies EF Core migrations automatically on startup
-- a local bootstrap admin can be enabled from the root `.env` for development only
-- the frontend forms use explicit `autocomplete` values for better browser and password manager behavior
-- the default UI language fallback is English
-- language and appearance preferences are stored locally in the browser
-- the production-like stack is meant as a realistic demo path, not as a final production deployment
-- GitHub Actions runs backend build/tests and frontend lint/typecheck/test/build checks
-- the first backend xUnit tests cover selected auth, equipment, and user-management rules
-- the first frontend Vitest tests cover API message handling and shared feedback rendering
-
-## Current limitations
-
-The project is in a strong demo-ready state, but a few production-level decisions are still intentionally simple.
-
-| Current limitation | Better production direction |
+| Current state | Production direction |
 | --- | --- |
-| JWT is stored in browser `localStorage`. | Use secure `HttpOnly` cookies instead, so JavaScript cannot read the token. |
-| The API has role checks, but it does not have a detailed permission system. | Add clear authorization policies if the app needs more roles or team rules. |
-| Forwarded headers can trust all proxies in the Docker demo setup. | In production, allow only the real reverse proxy or load balancer. |
-| Login rate limiting is IP-based. | Also check the account email and add better lockout rules. |
-| EF Core migrations run automatically on startup. | Run migrations as a separate deployment step, with backup planning. |
-| Uploaded files are stored on a Docker volume. | Store uploads in object storage and add virus scanning and backups. |
-| Secrets are configured through local environment variables. | Use a secret manager or GitHub Actions secrets for deployed environments. |
-| The production-like Docker setup does not include HTTPS or a real domain. | Add HTTPS, domain routing, and certificate renewal in the hosting setup. |
-| Automated testing currently starts with focused backend xUnit tests and focused frontend Vitest tests. | Add broader backend integration tests, more frontend component tests, and end-to-end workflow coverage. |
-| There is no monitoring setup yet. | Add structured logs, health checks, metrics, and error tracking. |
+| JWT stored in browser `localStorage` | Secure `HttpOnly` cookies |
+| Two fixed roles (admin, user) | Policy-based authorization for finer permissions |
+| Forwarded headers trust all proxies in the demo setup | Trust only the real reverse proxy |
+| IP-based login rate limiting | Add per-account lockout rules |
+| EF Core migrations run on startup | Separate migration step in deployment, with backups |
+| Uploads stored on a Docker volume | Object storage with scanning and backups |
+| Secrets come from local environment variables | Secret manager in deployed environments |
+| No HTTPS or real domain in the demo hosting | TLS, domain routing, certificate renewal |
+| Focused unit test suites | Integration and end-to-end coverage |
+| No monitoring | Structured logs, health checks, metrics, error tracking |
 
 ## License
 
-This repository is shared as a public portfolio project.
-
-It is public for review, but it is not released as open-source software.
-See [LICENSE](./LICENSE) for details.
+This repository is public for review as a portfolio project, but it is not released as open-source software. See [LICENSE](./LICENSE).
