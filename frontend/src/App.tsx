@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { useLanguage } from './context/LanguageContext'
@@ -23,17 +23,10 @@ interface AuthPageRouteProps {
 }
 
 function AuthPageRoute({ children }: AuthPageRouteProps) {
-  const { isAuthenticated, logout } = useAuth()
-  const [wasAuthenticatedOnEntry] = useState(isAuthenticated)
+  const { isAuthenticated } = useAuth()
 
-  useEffect(() => {
-    if (wasAuthenticatedOnEntry) {
-      logout()
-    }
-  }, [logout, wasAuthenticatedOnEntry])
-
-  if (wasAuthenticatedOnEntry && isAuthenticated) {
-    return null
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />
   }
 
   return children
