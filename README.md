@@ -56,7 +56,7 @@ The parts of the codebase that go beyond basic CRUD:
 - **Same-origin production mode.** In the production-like stack, Nginx serves the built frontend and proxies `/api` and `/uploads`, and the API and database are not published on host ports at all ([compose.prod.yaml](./compose.prod.yaml)).
 - **Fail-fast configuration.** The API refuses to start with a placeholder JWT key or an empty CORS origin list, so a misconfigured deployment fails loudly instead of running insecurely.
 - **Login rate limiting.** A fixed-window limiter per IP and path protects the auth endpoints and returns structured JSON `429` responses.
-- **Concurrency-safe checkout.** A partial unique index allows at most one active assignment per asset at the database level, so two simultaneous checkout requests cannot both succeed. Unique-constraint races on emails and serial numbers are caught and returned as friendly errors instead of `500`s.
+- **Concurrency-safe checkout.** A partial unique index allows at most one active assignment per asset at the database level, so two simultaneous checkout requests cannot both succeed. Unique-constraint races on emails and serial numbers are caught and returned as friendly errors instead of `500`s. Integration tests prove this against a real PostgreSQL container.
 - **Shareable list state.** Search, filters, sorting, and view mode live in the URL query string, so any filtered view survives a refresh and can be shared as a link.
 
 ## Architecture
@@ -121,6 +121,7 @@ Database data, uploaded images, and ASP.NET Data Protection keys live in named D
 ## Tests and CI
 
 - **Backend, 22 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
+- **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers: the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
 - **Frontend, 14 Vitest tests.** API error and message mapping plus shared feedback component behavior, written with Testing Library.
 
 GitHub Actions runs on every push and pull request: backend build and tests, then frontend lint with zero warnings allowed, typecheck, tests, and a production build.
@@ -204,7 +205,7 @@ This is a portfolio project, so some production decisions are intentionally simp
 | Uploads stored on a Docker volume | Object storage with scanning and backups |
 | Secrets come from local environment variables | Secret manager in deployed environments |
 | No HTTPS or real domain in the demo hosting | TLS, domain routing, certificate renewal |
-| Focused unit test suites | Integration and end-to-end coverage |
+| Unit tests plus API integration tests | Frontend end-to-end coverage |
 | No monitoring | Structured logs, health checks, metrics, error tracking |
 
 ## License
