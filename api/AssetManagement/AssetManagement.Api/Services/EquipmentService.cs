@@ -115,12 +115,21 @@ namespace AssetManagement.Api.Services
             };
 
             _context.Equipments.Add(equipment);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (DatabaseErrors.IsUniqueViolation(exception))
+            {
+                _imageService.DeleteImageFile(equipment.ImageUrl);
+                return ServiceResult.BadRequest("equipment.serialAlreadyExists", "An asset with this serial number already exists.");
+            }
 
             return ServiceResult.Created(
                 "equipment.created",
                 "Asset created successfully.",
-                equipment,
+                equipment.ToListItemDto(),
                 new { id = equipment.Id });
         }
 
@@ -167,7 +176,15 @@ namespace AssetManagement.Api.Services
             equipment.ImageUrl = nextImageUrl;
             equipment.SerialNumber = normalizedSerialNumber;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (DatabaseErrors.IsUniqueViolation(exception))
+            {
+                _imageService.DeleteImageFile(nextImageUrl == previousImageUrl ? null : nextImageUrl);
+                return ServiceResult.BadRequest("equipment.serialUsedByOtherAsset", "Another asset already uses this serial number.");
+            }
 
             if (dto.Image != null || (dto.RemoveImage && dto.Image == null))
             {
@@ -261,7 +278,14 @@ namespace AssetManagement.Api.Services
             equipment.Status = EquipmentStatus.CheckedOut;
             equipment.MaintenanceByUserId = null;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (DatabaseErrors.IsUniqueViolation(exception))
+            {
+                return ServiceResult.BadRequest("equipment.notAvailableForCheckout", "This asset is not currently available for assignment.");
+            }
 
             return ServiceResult.Success(
                 isAdmin ? "equipment.assigned" : "equipment.checkedOut",

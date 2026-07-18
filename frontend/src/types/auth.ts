@@ -40,3 +40,7 @@ export interface MessageResponse {
   message: string
   code?: string
 }
+
+export interface ChangePasswordResponse extends MessageResponse {
+  token?: string
+}

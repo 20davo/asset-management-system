@@ -93,8 +93,11 @@ namespace AssetManagement.Api.Extensions
                     {
                         var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                         var roleClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                        var tokenVersionClaim = context.Principal?.FindFirst(Constants.CustomClaimTypes.TokenVersion)?.Value;
 
-                        if (!int.TryParse(userIdClaim, out var userId) || string.IsNullOrWhiteSpace(roleClaim))
+                        if (!int.TryParse(userIdClaim, out var userId)
+                            || string.IsNullOrWhiteSpace(roleClaim)
+                            || !int.TryParse(tokenVersionClaim, out var tokenVersion))
                         {
                             context.Fail("Invalid token claims.");
                             return;
@@ -105,9 +108,9 @@ namespace AssetManagement.Api.Extensions
                             .AsNoTracking()
                             .FirstOrDefaultAsync(candidate => candidate.Id == userId);
 
-                        if (user == null || user.Role != roleClaim)
+                        if (user == null || user.Role != roleClaim || user.TokenVersion != tokenVersion)
                         {
-                            context.Fail("The token no longer matches the current user role.");
+                            context.Fail("The token no longer matches the current user state.");
                         }
                     }
                 };

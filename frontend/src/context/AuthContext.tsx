@@ -26,6 +26,7 @@ interface AuthContextValue {
   login: (data: LoginRequest) => Promise<void>
   logout: () => void
   updateUser: (nextUser: AuthUser) => void
+  updateToken: (nextToken: string) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -63,6 +64,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUser = useCallback((nextUser: AuthUser) => {
     setStoredUser(nextUser)
     setUser(nextUser)
+  }, [])
+
+  const updateToken = useCallback((nextToken: string) => {
+    setToken(nextToken)
+    setTokenState(nextToken)
   }, [])
 
   useEffect(() => {
@@ -103,8 +109,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
       updateUser,
+      updateToken,
     }),
-    [logout, token, updateUser, user],
+    [logout, token, updateToken, updateUser, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

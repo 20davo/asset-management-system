@@ -65,7 +65,15 @@ namespace AssetManagement.Api.Services
             };
 
             _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (DatabaseErrors.IsUniqueViolation(exception))
+            {
+                return ServiceResult.BadRequest("auth.emailAlreadyExists", "A user with this email address already exists.");
+            }
 
             return ServiceResult.Success("auth.registered", "Registration completed successfully.");
         }
@@ -133,10 +141,14 @@ namespace AssetManagement.Api.Services
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.TokenVersion++;
 
             await _context.SaveChangesAsync();
 
-            return ServiceResult.Success("auth.passwordUpdated", "Password updated successfully.");
+            return ServiceResult.Success(
+                "auth.passwordUpdated",
+                "Password updated successfully.",
+                new { token = CreateJwt(user) });
         }
 
         private string CreateJwt(User user)
@@ -146,7 +158,8 @@ namespace AssetManagement.Api.Services
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim(CustomClaimTypes.TokenVersion, user.TokenVersion.ToString())
             };
 
             var key = new SymmetricSecurityKey(

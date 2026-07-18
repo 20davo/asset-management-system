@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { changePassword } from '../api/authApi'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
+import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { getApiMessage } from '../utils/apiMessages'
 
 function ChangePasswordPage() {
   const { language, t } = useLanguage()
+  const { updateToken } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
@@ -32,6 +34,10 @@ function ChangePasswordPage() {
         newPassword,
         confirmNewPassword,
       })
+
+      if (response.token) {
+        updateToken(response.token)
+      }
 
       setSuccessMessage(getApiMessage(response.code, language) ?? response.message)
       setCurrentPassword('')

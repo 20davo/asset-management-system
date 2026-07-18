@@ -50,12 +50,13 @@ Watch the [6-minute video walkthrough](https://youtu.be/dxP30sKYmxA) of the main
 
 The parts of the codebase that go beyond basic CRUD:
 
-- **Role changes take effect immediately.** Token validation re-checks the user's role in the database on every request ([ServiceCollectionExtensions.cs](./api/AssetManagement/AssetManagement.Api/Extensions/ServiceCollectionExtensions.cs)). A removed admin role locks the user out right away instead of when the old JWT expires.
+- **Role and password changes take effect immediately.** Token validation re-checks the user's role and token version in the database on every request ([ServiceCollectionExtensions.cs](./api/AssetManagement/AssetManagement.Api/Extensions/ServiceCollectionExtensions.cs)). A removed admin role locks the user out right away, and changing a password invalidates every earlier token while the current session receives a fresh one.
 - **Defensive upload pipeline.** Images are validated by size, extension, content type, and file signature (magic bytes), stored under random names, and served through an authenticated endpoint instead of public static files ([EquipmentImageService.cs](./api/AssetManagement/AssetManagement.Api/Services/EquipmentImageService.cs)).
 - **One result pattern across the API.** Services return a `ServiceResult` with a machine-readable code. Controllers turn it into the right HTTP response, and the frontend maps the same code to an English or Hungarian message ([ServiceResult.cs](./api/AssetManagement/AssetManagement.Api/Services/ServiceResult.cs), [apiMessages.ts](./frontend/src/utils/apiMessages.ts)).
 - **Same-origin production mode.** In the production-like stack, Nginx serves the built frontend and proxies `/api` and `/uploads`, and the API and database are not published on host ports at all ([compose.prod.yaml](./compose.prod.yaml)).
 - **Fail-fast configuration.** The API refuses to start with a placeholder JWT key or an empty CORS origin list, so a misconfigured deployment fails loudly instead of running insecurely.
 - **Login rate limiting.** A fixed-window limiter per IP and path protects the auth endpoints and returns structured JSON `429` responses.
+- **Concurrency-safe checkout.** A partial unique index allows at most one active assignment per asset at the database level, so two simultaneous checkout requests cannot both succeed. Unique-constraint races on emails and serial numbers are caught and returned as friendly errors instead of `500`s.
 - **Shareable list state.** Search, filters, sorting, and view mode live in the URL query string, so any filtered view survives a refresh and can be shared as a link.
 
 ## Architecture
@@ -119,7 +120,7 @@ Database data, uploaded images, and ASP.NET Data Protection keys live in named D
 
 ## Tests and CI
 
-- **Backend, 21 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
+- **Backend, 22 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
 - **Frontend, 14 Vitest tests.** API error and message mapping plus shared feedback component behavior, written with Testing Library.
 
 GitHub Actions runs on every push and pull request: backend build and tests, then frontend lint with zero warnings allowed, typecheck, tests, and a production build.

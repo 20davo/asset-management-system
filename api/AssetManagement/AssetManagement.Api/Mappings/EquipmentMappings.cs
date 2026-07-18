@@ -6,6 +6,21 @@ namespace AssetManagement.Api.Mappings
 {
     public static class EquipmentMappings
     {
+        public static EquipmentListItemDto ToListItemDto(this Equipment equipment)
+        {
+            return new EquipmentListItemDto
+            {
+                Id = equipment.Id,
+                Name = equipment.Name,
+                Category = equipment.Category,
+                Description = equipment.Description,
+                ImageUrl = equipment.ImageUrl,
+                SerialNumber = equipment.SerialNumber,
+                Status = equipment.Status,
+                CreatedAt = equipment.CreatedAt
+            };
+        }
+
         public static EquipmentDetailsDto ToDetailsDto(
             this Equipment equipment,
             bool isAdmin,

@@ -1,9 +1,9 @@
 import api from './axios'
 import type {
   ChangePasswordRequest,
+  ChangePasswordResponse,
   LoginRequest,
   LoginResponse,
-  MessageResponse,
   RegisterRequest,
   RegisterResponse,
 } from '../types/auth'
@@ -19,6 +19,6 @@ export async function register(data: RegisterRequest) {
 }
 
 export async function changePassword(data: ChangePasswordRequest) {
-  const response = await api.post<MessageResponse>('/auth/change-password', data)
+  const response = await api.post<ChangePasswordResponse>('/auth/change-password', data)
   return response.data
 }

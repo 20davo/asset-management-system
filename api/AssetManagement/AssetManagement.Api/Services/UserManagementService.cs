@@ -94,7 +94,14 @@ namespace AssetManagement.Api.Services
             user.Email = normalizedEmail;
             user.Role = normalizedRole;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (DatabaseErrors.IsUniqueViolation(exception))
+            {
+                return ServiceResult.BadRequest("user.emailAlreadyExists", "Another user already uses this email address.");
+            }
 
             return ServiceResult.Success(string.Empty, string.Empty, user.ToSummaryDto());
         }

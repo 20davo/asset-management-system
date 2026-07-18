@@ -31,6 +31,17 @@ namespace AssetManagement.Api.Data
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Checkout>()
+                .HasIndex(c => c.EquipmentId);
+
+            if (Database.IsNpgsql())
+            {
+                modelBuilder.Entity<Checkout>()
+                    .HasIndex(c => c.EquipmentId, "IX_Checkouts_ActiveEquipment")
+                    .IsUnique()
+                    .HasFilter("\"ReturnedAt\" IS NULL");
+            }
+
             modelBuilder.Entity<Equipment>()
                 .HasOne(e => e.MaintenanceByUser)
                 .WithMany()
