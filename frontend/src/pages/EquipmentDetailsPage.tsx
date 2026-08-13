@@ -19,7 +19,7 @@ import {
 } from '../utils/presentation'
 import { useLanguage } from '../context/LanguageContext'
 import { EquipmentCheckoutHistory } from '../components/equipment/EquipmentCheckoutHistory'
-import { EquipmentDetailsShowcase } from '../components/equipment/EquipmentDetailsShowcase'
+import { EquipmentDetailsMain } from '../components/equipment/EquipmentDetailsMain'
 import { EquipmentDetailsSummary } from '../components/equipment/EquipmentDetailsSummary'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { getApiErrorMessage } from '../utils/apiErrors'
@@ -302,7 +302,7 @@ function EquipmentDetailsPage() {
 
       <div className="details-layout">
         <div className="details-main">
-          <EquipmentDetailsShowcase
+          <EquipmentDetailsMain
             activeCheckoutDueAt={activeCheckoutDueAt}
             activeCheckoutDueSoon={activeCheckoutDueSoon}
             activeCheckoutOverdue={activeCheckoutOverdue}

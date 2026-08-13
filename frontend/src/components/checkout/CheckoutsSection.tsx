@@ -21,7 +21,7 @@ type CheckoutFilter = 'all' | 'active' | 'overdue' | 'closed'
 type FilterMode = 'checkout' | 'equipment' | 'none'
 type CheckoutSortField = 'asset' | 'user' | 'status' | 'checkedOutAt' | 'dueAt' | 'returnedAt'
 
-interface CheckoutCollectionViewProps {
+interface CheckoutsSectionProps {
   items: CheckoutItem[]
   emptyTitle: string
   emptyText: string
@@ -67,7 +67,7 @@ function getCheckoutTimelineState(checkout: CheckoutItem) {
   return null
 }
 
-export function CheckoutCollectionView({
+export function CheckoutsSection({
   items,
   emptyTitle,
   emptyText,
@@ -81,7 +81,7 @@ export function CheckoutCollectionView({
   compact = false,
   queryKeyPrefix,
   filterMode = 'checkout',
-}: CheckoutCollectionViewProps) {
+}: CheckoutsSectionProps) {
   const { language, t } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const checkoutView = getEnumSearchParam(

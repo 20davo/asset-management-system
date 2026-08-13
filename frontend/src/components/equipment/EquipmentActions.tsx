@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
 import type { EquipmentListItem } from '../../types/equipment'
 
-type InventoryActionKind = 'edit' | 'maintenance' | 'available' | 'delete'
+type EquipmentActionKind = 'edit' | 'maintenance' | 'available' | 'delete'
 
-interface InventoryActionsProps {
+interface EquipmentActionsProps {
   deletingEquipmentId: number | null
   equipment: EquipmentListItem
   isAdmin: boolean
@@ -16,7 +16,7 @@ interface InventoryActionsProps {
   statusChangingEquipmentId: number | null
 }
 
-function renderActionIcon(kind: InventoryActionKind) {
+function renderActionIcon(kind: EquipmentActionKind) {
   switch (kind) {
     case 'edit':
       return (
@@ -95,7 +95,7 @@ function renderActionIcon(kind: InventoryActionKind) {
   }
 }
 
-export function InventoryActions({
+export function EquipmentActions({
   deletingEquipmentId,
   equipment,
   isAdmin,
@@ -105,7 +105,7 @@ export function InventoryActions({
   onMarkMaintenance,
   options,
   statusChangingEquipmentId,
-}: InventoryActionsProps) {
+}: EquipmentActionsProps) {
   const { t } = useLanguage()
   const compact = options?.compact ?? false
   const shortLabels = options?.shortLabels ?? false

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getUserCheckouts } from '../api/checkoutApi'
 import { deleteUser, getUser, updateUser as updateUserRequest } from '../api/userApi'
-import { AssignedAssetCollectionView } from '../components/shared/AssignedAssetCollectionView'
-import { CheckoutCollectionView } from '../components/shared/CheckoutCollectionView'
+import { AssignedAssetsSection } from '../components/checkout/AssignedAssetsSection'
+import { CheckoutsSection } from '../components/checkout/CheckoutsSection'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -313,7 +313,7 @@ function UserDetailsPage() {
         </aside>
       </section>
 
-      <AssignedAssetCollectionView
+      <AssignedAssetsSection
         items={activeItems}
         emptyTitle={t.users.currentEmptyTitle}
         emptyText={t.users.currentEmptyText}
@@ -325,7 +325,7 @@ function UserDetailsPage() {
         enableWarningFilter
       />
 
-      <CheckoutCollectionView
+      <CheckoutsSection
         items={historyItems}
         emptyTitle={t.users.historyEmptyTitle}
         emptyText={t.users.historyEmptyText}

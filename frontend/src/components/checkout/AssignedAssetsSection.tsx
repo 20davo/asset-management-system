@@ -17,7 +17,7 @@ import {
 } from '../../utils/searchParams'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
 
-interface AssignedAssetCollectionViewProps {
+interface AssignedAssetsSectionProps {
   items: CheckoutItem[]
   emptyTitle: string
   emptyText: string
@@ -49,7 +49,7 @@ function getTimelineState(checkout: CheckoutItem) {
   return null
 }
 
-export function AssignedAssetCollectionView({
+export function AssignedAssetsSection({
   items,
   emptyTitle,
   emptyText,
@@ -59,7 +59,7 @@ export function AssignedAssetCollectionView({
   heroText,
   queryKeyPrefix,
   enableWarningFilter = false,
-}: AssignedAssetCollectionViewProps) {
+}: AssignedAssetsSectionProps) {
   const { language, t } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
   const assetView = getEnumSearchParam(

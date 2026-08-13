@@ -5,33 +5,33 @@ import type { EquipmentListItem } from '../../types/equipment'
 import { formatDate, formatDateTime, getStatusBadgeClass, getStatusLabel } from '../../utils/presentation'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
 
-export interface InventoryDueState {
+export interface EquipmentDueState {
   alertClass: string | null
   alertLabel: string | null
   detailLabel: string
   isOverdue: boolean
 }
 
-export interface InventoryStatusContext {
+export interface EquipmentStatusMeta {
   label: string
   value: string
 }
 
-interface InventoryEquipmentCardProps {
+interface EquipmentCardProps {
   actions?: ReactNode
   canSeeDueState: boolean
-  dueState: InventoryDueState | null
+  dueState: EquipmentDueState | null
   equipment: EquipmentListItem
-  statusContext: InventoryStatusContext | null
+  statusContext: EquipmentStatusMeta | null
 }
 
-export function InventoryEquipmentCard({
+export function EquipmentCard({
   actions,
   canSeeDueState,
   dueState,
   equipment,
   statusContext,
-}: InventoryEquipmentCardProps) {
+}: EquipmentCardProps) {
   const { language, t } = useLanguage()
 
   return (

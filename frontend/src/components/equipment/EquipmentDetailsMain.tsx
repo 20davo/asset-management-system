@@ -3,7 +3,7 @@ import type { EquipmentDetails } from '../../types/equipment'
 import { formatDateTime, getStatusBadgeClass, getStatusLabel } from '../../utils/presentation'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
 
-interface EquipmentDetailsShowcaseProps {
+interface EquipmentDetailsMainProps {
   activeCheckoutDueAt: string | null
   activeCheckoutDueSoon: boolean
   activeCheckoutOverdue: boolean
@@ -15,7 +15,7 @@ interface EquipmentDetailsShowcaseProps {
   onMarkMaintenance: () => void
 }
 
-export function EquipmentDetailsShowcase({
+export function EquipmentDetailsMain({
   activeCheckoutDueAt,
   activeCheckoutDueSoon,
   activeCheckoutOverdue,
@@ -25,7 +25,7 @@ export function EquipmentDetailsShowcase({
   isStatusSubmitting,
   onMarkAvailable,
   onMarkMaintenance,
-}: EquipmentDetailsShowcaseProps) {
+}: EquipmentDetailsMainProps) {
   const { language, t } = useLanguage()
   const hasDescription = !!equipment.description
 

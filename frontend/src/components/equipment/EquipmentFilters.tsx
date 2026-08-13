@@ -2,7 +2,7 @@ import { useLanguage } from '../../context/LanguageContext'
 
 type WarningFilter = 'all' | 'none' | 'dueSoon' | 'overdue'
 
-interface InventoryFiltersProps {
+interface EquipmentFiltersProps {
   categories: string[]
   categoryFilter: string
   equipmentCount: number
@@ -17,7 +17,7 @@ interface InventoryFiltersProps {
   warningFilter: WarningFilter
 }
 
-export function InventoryFilters({
+export function EquipmentFilters({
   categories,
   categoryFilter,
   equipmentCount,
@@ -30,7 +30,7 @@ export function InventoryFilters({
   searchQuery,
   statusFilter,
   warningFilter,
-}: InventoryFiltersProps) {
+}: EquipmentFiltersProps) {
   const { t } = useLanguage()
 
   return (

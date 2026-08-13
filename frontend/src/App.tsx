@@ -16,7 +16,7 @@ import RegisterPage from './pages/RegisterPage'
 import SettingsPage from './pages/SettingsPage'
 import UserDetailsPage from './pages/UserDetailsPage'
 import UsersPage from './pages/UsersPage'
-import { REGISTRATION_ENABLED } from './config/runtime'
+import { REGISTRATION_ENABLED } from './config/featureFlags'
 
 interface AuthPageRouteProps {
   children: ReactNode

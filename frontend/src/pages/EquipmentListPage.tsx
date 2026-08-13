@@ -31,19 +31,19 @@ import {
   type EquipmentFormState,
 } from '../components/equipment/EquipmentForm'
 import {
-  InventoryEquipmentCard,
-  type InventoryDueState,
-} from '../components/equipment/InventoryEquipmentCard'
-import { InventoryEquipmentRow } from '../components/equipment/InventoryEquipmentRow'
-import { InventoryFilters } from '../components/equipment/InventoryFilters'
-import { InventoryActions } from '../components/equipment/InventoryActions'
+  EquipmentCard,
+  type EquipmentDueState,
+} from '../components/equipment/EquipmentCard'
+import { EquipmentListRow } from '../components/equipment/EquipmentListRow'
+import { EquipmentFilters } from '../components/equipment/EquipmentFilters'
+import { EquipmentActions } from '../components/equipment/EquipmentActions'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 const CATEGORY_DATALIST_ID = 'equipment-category-suggestions'
 
 type WarningFilter = 'all' | 'none' | 'dueSoon' | 'overdue'
-type InventorySortField = 'asset' | 'assignee' | 'serial' | 'status' | 'recorded'
+type EquipmentSortField = 'asset' | 'assignee' | 'serial' | 'status' | 'recorded'
 
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -534,7 +534,7 @@ function EquipmentListPage() {
     )
   }
 
-  function getDueState(dueAt: string | null): InventoryDueState | null {
+  function getDueState(dueAt: string | null): EquipmentDueState | null {
     if (!dueAt) {
       return null
     }
@@ -581,7 +581,7 @@ function EquipmentListPage() {
     return 'none'
   }
 
-  function renderSortableHeading(field: InventorySortField, label: string) {
+  function renderSortableHeading(field: EquipmentSortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
     const sortStateLabel = !isActive
@@ -605,12 +605,12 @@ function EquipmentListPage() {
     )
   }
 
-  function renderInventoryActions(
+  function renderEquipmentActions(
     equipment: EquipmentListItem,
     options?: { compact?: boolean; shortLabels?: boolean },
   ) {
     return (
-      <InventoryActions
+      <EquipmentActions
         deletingEquipmentId={deletingEquipmentId}
         equipment={equipment}
         isAdmin={isAdmin}
@@ -658,9 +658,9 @@ function EquipmentListPage() {
     }
 
     return (
-      <InventoryEquipmentCard
+      <EquipmentCard
         key={equipment.id}
-        actions={isAdmin ? renderInventoryActions(equipment, { shortLabels: true }) : null}
+        actions={isAdmin ? renderEquipmentActions(equipment, { shortLabels: true }) : null}
         canSeeDueState={canSeeDueState}
         dueState={dueState}
         equipment={equipment}
@@ -817,7 +817,7 @@ function EquipmentListPage() {
             </div>
           </div>
 
-          <InventoryFilters
+          <EquipmentFilters
             categories={categories}
             categoryFilter={categoryFilter}
             equipmentCount={equipments.length}
@@ -888,9 +888,9 @@ function EquipmentListPage() {
                 return editingEquipmentId === equipment.id ? (
                   renderEquipmentCard(equipment)
                 ) : (
-                  <InventoryEquipmentRow
+                  <EquipmentListRow
                     key={equipment.id}
-                    actions={isAdmin ? renderInventoryActions(equipment, { compact: true }) : null}
+                    actions={isAdmin ? renderEquipmentActions(equipment, { compact: true }) : null}
                     canSeeDueState={canSeeDueState}
                     dueState={dueState}
                     equipment={equipment}

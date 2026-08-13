@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getMyCheckouts } from '../api/checkoutApi'
-import { AssignedAssetCollectionView } from '../components/shared/AssignedAssetCollectionView'
-import { CheckoutCollectionView } from '../components/shared/CheckoutCollectionView'
+import { AssignedAssetsSection } from '../components/checkout/AssignedAssetsSection'
+import { CheckoutsSection } from '../components/checkout/CheckoutsSection'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import type { CheckoutItem } from '../types/checkout'
@@ -98,7 +98,7 @@ function MyItemsPage() {
         </article>
       </section>
 
-      <AssignedAssetCollectionView
+      <AssignedAssetsSection
         items={activeItems}
         emptyTitle={t.myItems.currentEmptyTitle}
         emptyText={t.myItems.currentEmptyText}
@@ -110,7 +110,7 @@ function MyItemsPage() {
         enableWarningFilter
       />
 
-      <CheckoutCollectionView
+      <CheckoutsSection
         items={historyItems}
         emptyTitle={t.myItems.historyEmptyTitle}
         emptyText={t.myItems.historyEmptyText}

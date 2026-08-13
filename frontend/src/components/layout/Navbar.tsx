@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { REGISTRATION_ENABLED } from '../../config/runtime'
+import { REGISTRATION_ENABLED } from '../../config/featureFlags'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { getRoleLabel } from '../../utils/presentation'

@@ -2,7 +2,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
-import { REGISTRATION_ENABLED } from '../config/runtime'
+import { REGISTRATION_ENABLED } from '../config/featureFlags'
 import { useLanguage } from '../context/LanguageContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 

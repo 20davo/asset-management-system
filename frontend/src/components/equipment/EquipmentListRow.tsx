@@ -4,23 +4,23 @@ import { useLanguage } from '../../context/LanguageContext'
 import type { EquipmentListItem } from '../../types/equipment'
 import { formatDate, formatDateTime, getStatusBadgeClass, getStatusLabel } from '../../utils/presentation'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
-import type { InventoryDueState, InventoryStatusContext } from './InventoryEquipmentCard'
+import type { EquipmentDueState, EquipmentStatusMeta } from './EquipmentCard'
 
-interface InventoryEquipmentRowProps {
+interface EquipmentListRowProps {
   actions?: ReactNode
   canSeeDueState: boolean
-  dueState: InventoryDueState | null
+  dueState: EquipmentDueState | null
   equipment: EquipmentListItem
-  statusContext: InventoryStatusContext | null
+  statusContext: EquipmentStatusMeta | null
 }
 
-export function InventoryEquipmentRow({
+export function EquipmentListRow({
   actions,
   canSeeDueState,
   dueState,
   equipment,
   statusContext,
-}: InventoryEquipmentRowProps) {
+}: EquipmentListRowProps) {
   const { language, t } = useLanguage()
 
   return (
