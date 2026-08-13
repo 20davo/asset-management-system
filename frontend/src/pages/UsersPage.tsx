@@ -16,7 +16,7 @@ import {
   toggleSortSearchParams,
 } from '../utils/searchParams'
 
-interface UserSummaryCard extends ManagedUser {
+interface UserSummary extends ManagedUser {
   totalCheckouts: number
   activeCheckouts: number
   overdueCheckouts: number
@@ -41,7 +41,7 @@ function UsersPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [users, setUsers] = useState<UserSummaryCard[]>([])
+  const [users, setUsers] = useState<UserSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage] = useState(() => {
@@ -365,7 +365,7 @@ function UsersPage() {
   )
 }
 
-function buildUserSummary(user: ManagedUser, allCheckouts: CheckoutItem[]): UserSummaryCard {
+function buildUserSummary(user: ManagedUser, allCheckouts: CheckoutItem[]): UserSummary {
   const userCheckouts = allCheckouts.filter((checkout) => checkout.user.id === user.id)
   const activeCheckouts = userCheckouts.filter((checkout) => !checkout.returnedAt).length
   const overdueCheckouts = userCheckouts.filter((checkout) =>
