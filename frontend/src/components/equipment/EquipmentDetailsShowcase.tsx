@@ -102,7 +102,7 @@ export function EquipmentDetailsShowcase({
                 </p>
               )}
             </div>
-            <span className={getStatusBadgeClass(equipment.status)}>
+            <span className={`${getStatusBadgeClass(equipment.status)} status-badge--strong`}>
               {getStatusLabel(equipment.status, language)}
             </span>
           </div>

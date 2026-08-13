@@ -9,6 +9,7 @@ export interface InventoryDueState {
   alertClass: string | null
   alertLabel: string | null
   detailLabel: string
+  isOverdue: boolean
 }
 
 export interface InventoryStatusContext {
@@ -34,7 +35,9 @@ export function InventoryEquipmentCard({
   const { language, t } = useLanguage()
 
   return (
-    <article className="equipment-card">
+    <article
+      className={`equipment-card ${dueState?.isOverdue ? 'equipment-card--overdue' : ''}`}
+    >
       <div className="equipment-card__layout equipment-card__layout--media-first">
         <div className="equipment-card__media">
           <ProtectedAssetImage

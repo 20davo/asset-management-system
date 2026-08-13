@@ -24,7 +24,9 @@ export function InventoryEquipmentRow({
   const { language, t } = useLanguage()
 
   return (
-    <article className="data-list__row">
+    <article
+      className={`data-list__row ${dueState?.isOverdue ? 'data-list__row--overdue' : ''}`}
+    >
       <div className="data-list__cell data-list__cell--primary">
         <div className="data-list__asset">
           <div className="data-list__thumb">

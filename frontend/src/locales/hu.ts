@@ -112,7 +112,6 @@ export const hu = {
       imageSelect: 'Kép kiválasztása',
       imageReplace: 'Kép cseréje',
       imageRemove: 'Kép eltávolítása',
-      imagePreview: 'Kép előnézete',
       imageInvalidType: 'Csak képfájl tölthető fel.',
       imageTooLarge: 'A kép mérete legfeljebb 2 MB lehet.',
       saveItem: 'Eszköz mentése',
@@ -495,5 +494,8 @@ export const hu = {
       clearFilters: 'Szűrők törlése',
       actions: 'Műveletek',
       noImage: 'Nincs kép',
+      sortNotSorted: 'nincs rendezve, aktiválás a növekvő rendezéshez',
+      sortAscending: 'növekvő sorrend, aktiválás a csökkenőhöz',
+      sortDescending: 'csökkenő sorrend, aktiválás a növekvőhöz',
     },
 } as const

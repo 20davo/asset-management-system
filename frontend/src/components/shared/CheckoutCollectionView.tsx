@@ -213,6 +213,11 @@ export function CheckoutCollectionView({
   function renderSortableHeading(field: CheckoutSortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
+    const sortStateLabel = !isActive
+      ? t.common.sortNotSorted
+      : sortDirection === 'asc'
+        ? t.common.sortAscending
+        : t.common.sortDescending
 
     return (
       <button
@@ -232,6 +237,7 @@ export function CheckoutCollectionView({
         <span className="data-list__sort-icon" aria-hidden="true">
           {icon}
         </span>
+        <span className="visually-hidden">{sortStateLabel}</span>
       </button>
     )
   }
@@ -358,6 +364,17 @@ export function CheckoutCollectionView({
         </div>
       ) : (
         <section className="inventory-stack">
+          <div className="section-heading section-heading--toolbar">
+            <div>
+              <span className="section-heading__eyebrow">{heroKicker}</span>
+              <h2 className="section-heading__title">{heroTitle}</h2>
+            </div>
+            <div className="section-heading__aside">
+              <p className="section-heading__text">{heroText}</p>
+              {renderCheckoutViewSwitch()}
+            </div>
+          </div>
+
           <section className="section-card section-card--compact filter-panel">
             <div className="filter-panel__grid filter-panel__grid--checkout">
               <div className="form-field">
@@ -434,17 +451,6 @@ export function CheckoutCollectionView({
               </button>
             </div>
           </section>
-
-          <div className="section-heading section-heading--toolbar">
-            <div>
-              <span className="section-heading__eyebrow">{heroKicker}</span>
-              <h2 className="section-heading__title">{heroTitle}</h2>
-            </div>
-            <div className="section-heading__aside">
-              <p className="section-heading__text">{heroText}</p>
-              {renderCheckoutViewSwitch()}
-            </div>
-          </div>
 
           {filteredCheckouts.length === 0 ? (
             <div className="empty-state">

@@ -113,7 +113,6 @@ export const en = {
       imageSelect: 'Choose image',
       imageReplace: 'Replace image',
       imageRemove: 'Remove image',
-      imagePreview: 'Image preview',
       imageInvalidType: 'Only image files can be uploaded.',
       imageTooLarge: 'The image must be 2 MB or smaller.',
       saveItem: 'Save asset',
@@ -496,5 +495,8 @@ export const en = {
       clearFilters: 'Clear filters',
       actions: 'Actions',
       noImage: 'No image',
+      sortNotSorted: 'not sorted, activate to sort ascending',
+      sortAscending: 'sorted ascending, activate to sort descending',
+      sortDescending: 'sorted descending, activate to sort ascending',
     },
 } as const

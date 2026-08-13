@@ -80,19 +80,6 @@ export function EquipmentForm({
     return () => timeoutIds.forEach(window.clearTimeout)
   }, [scrollToFormEnd])
 
-  useEffect(() => {
-    if (!form.imagePreviewUrl) {
-      return undefined
-    }
-
-    const timeoutIds = [
-      window.setTimeout(scrollToFormEnd, 50),
-      window.setTimeout(scrollToFormEnd, 300),
-    ]
-
-    return () => timeoutIds.forEach(window.clearTimeout)
-  }, [form.imagePreviewUrl, scrollToFormEnd])
-
   return (
     <form className="auth-form admin-form" onSubmit={onSubmit}>
       {titleBlock && (
@@ -188,9 +175,20 @@ export function EquipmentForm({
       </div>
 
       <aside className="admin-form__aside">
-        <div className="form-field">
-          <span>{t.inventory.image}</span>
-          <div className="upload-control">
+        <div className="asset-image-field">
+          <span className="asset-image-field__label">{t.inventory.image}</span>
+
+          <div className="equipment-card__media asset-image-field__preview">
+            <ProtectedAssetImage
+              imageUrl={form.imagePreviewUrl}
+              alt={form.name || mediaFallbackName}
+              className="equipment-card__image"
+              placeholderClassName="equipment-card__image-placeholder"
+              placeholderText={t.common.noImage}
+            />
+          </div>
+
+          <div className="asset-image-field__actions">
             <input
               id={`${idPrefix}-image`}
               className="upload-control__input"
@@ -201,26 +199,14 @@ export function EquipmentForm({
             <label htmlFor={`${idPrefix}-image`} className="upload-control__button">
               {form.imagePreviewUrl ? t.inventory.imageReplace : t.inventory.imageSelect}
             </label>
-            <span className="form-field__hint">{t.inventory.imageHint}</span>
+            {form.imagePreviewUrl && (
+              <button type="button" className="button-secondary" onClick={onRemoveImage}>
+                {t.inventory.imageRemove}
+              </button>
+            )}
           </div>
-        </div>
 
-        <div className="asset-image-field">
-          <span className="asset-image-field__label">{t.inventory.imagePreview}</span>
-          <div className="equipment-card__media">
-            <ProtectedAssetImage
-              imageUrl={form.imagePreviewUrl}
-              alt={form.name || mediaFallbackName}
-              className="equipment-card__image"
-              placeholderClassName="equipment-card__image-placeholder"
-              placeholderText={t.common.noImage}
-            />
-          </div>
-          {form.imagePreviewUrl && (
-            <button type="button" className="button-secondary" onClick={onRemoveImage}>
-              {t.inventory.imageRemove}
-            </button>
-          )}
+          <span className="form-field__hint">{t.inventory.imageHint}</span>
         </div>
       </aside>
 

@@ -205,6 +205,11 @@ function AllCheckoutsPage() {
   function renderSortableHeading(field: CheckoutSortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
+    const sortStateLabel = !isActive
+      ? t.common.sortNotSorted
+      : sortDirection === 'asc'
+        ? t.common.sortAscending
+        : t.common.sortDescending
 
     return (
       <button
@@ -216,6 +221,7 @@ function AllCheckoutsPage() {
         <span className="data-list__sort-icon" aria-hidden="true">
           {icon}
         </span>
+        <span className="visually-hidden">{sortStateLabel}</span>
       </button>
     )
   }
@@ -321,54 +327,54 @@ function AllCheckoutsPage() {
         </article>
       </section>
 
-      <CheckoutLogFilters
-        checkoutCount={checkouts.length}
-        filteredCount={filteredCheckouts.length}
-        onReset={resetFilters}
-        onSearchChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            search: value.trim() ? value : null,
-          })
-        }
-        onStateChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            state: value === 'all' ? null : value,
-            warning: value === 'active' ? searchParams.get('warning') : null,
-          })
-        }
-        onWarningChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            warning: value === 'all' ? null : value,
-          })
-        }
-        searchQuery={searchQuery}
-        stateFilter={statusFilter}
-        warningFilter={warningFilter}
-      />
-
-      {checkouts.length === 0 ? (
-        <div className="empty-state">
-          <h3>{t.checkouts.allEmptyTitle}</h3>
-          <p>{t.checkouts.allEmptyText}</p>
-        </div>
-      ) : filteredCheckouts.length === 0 ? (
-        <div className="empty-state">
-          <h3>{t.checkouts.noResultsTitle}</h3>
-          <p>{t.checkouts.noResultsText}</p>
-        </div>
-      ) : checkoutView === 'list' ? (
-        <section className="inventory-stack">
-          <div className="section-heading section-heading--toolbar">
-            <div>
-              <span className="section-heading__eyebrow">{t.checkouts.allHeroKicker}</span>
-              <h2 className="section-heading__title">{t.checkouts.allHeroTitle}</h2>
-            </div>
-            <div className="section-heading__aside">
-              <p className="section-heading__text">{t.checkouts.allHeroText}</p>
-              {renderCheckoutViewSwitch()}
-            </div>
+      <section className="inventory-stack">
+        <div className="section-heading section-heading--toolbar">
+          <div>
+            <span className="section-heading__eyebrow">{t.checkouts.allHeroKicker}</span>
+            <h2 className="section-heading__title">{t.checkouts.allHeroTitle}</h2>
           </div>
+          <div className="section-heading__aside">
+            <p className="section-heading__text">{t.checkouts.allHeroText}</p>
+            {renderCheckoutViewSwitch()}
+          </div>
+        </div>
 
+        <CheckoutLogFilters
+          checkoutCount={checkouts.length}
+          filteredCount={filteredCheckouts.length}
+          onReset={resetFilters}
+          onSearchChange={(value) =>
+            setMergedSearchParams(setSearchParams, {
+              search: value.trim() ? value : null,
+            })
+          }
+          onStateChange={(value) =>
+            setMergedSearchParams(setSearchParams, {
+              state: value === 'all' ? null : value,
+              warning: value === 'active' ? searchParams.get('warning') : null,
+            })
+          }
+          onWarningChange={(value) =>
+            setMergedSearchParams(setSearchParams, {
+              warning: value === 'all' ? null : value,
+            })
+          }
+          searchQuery={searchQuery}
+          stateFilter={statusFilter}
+          warningFilter={warningFilter}
+        />
+
+        {checkouts.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.checkouts.allEmptyTitle}</h3>
+            <p>{t.checkouts.allEmptyText}</p>
+          </div>
+        ) : filteredCheckouts.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.checkouts.noResultsTitle}</h3>
+            <p>{t.checkouts.noResultsText}</p>
+          </div>
+        ) : checkoutView === 'list' ? (
           <div className="data-list data-list--checkouts">
             <div className="data-list__header">
               <span className="data-list__heading">{renderSortableHeading('asset', t.common.asset)}</span>
@@ -478,20 +484,7 @@ function AllCheckoutsPage() {
               )
             })}
           </div>
-        </section>
-      ) : (
-        <section className="inventory-stack">
-          <div className="section-heading section-heading--toolbar">
-            <div>
-              <span className="section-heading__eyebrow">{t.checkouts.allHeroKicker}</span>
-              <h2 className="section-heading__title">{t.checkouts.allHeroTitle}</h2>
-            </div>
-            <div className="section-heading__aside">
-              <p className="section-heading__text">{t.checkouts.allHeroText}</p>
-              {renderCheckoutViewSwitch()}
-            </div>
-          </div>
-
+        ) : (
           <div className="equipment-list">
             {filteredCheckouts.map((checkout) => {
               const overdue = isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)
@@ -600,8 +593,8 @@ function AllCheckoutsPage() {
               )
             })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   )
 }

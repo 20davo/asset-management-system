@@ -157,6 +157,11 @@ function EquipmentListPage() {
     }))
   }
 
+  function cancelCreate() {
+    setCreateForm(emptyEquipmentForm)
+    setIsCreatePanelOpen(false)
+  }
+
   function updateEditCategory(rawCategory: string) {
     setEditForm((prev) => ({
       ...prev,
@@ -539,6 +544,7 @@ function EquipmentListPage() {
         alertClass: 'deadline-flag deadline-flag--danger',
         alertLabel: t.checkouts.overdueBadge,
         detailLabel: t.details.overduePrefix,
+        isOverdue: true,
       }
     }
 
@@ -547,6 +553,7 @@ function EquipmentListPage() {
         alertClass: 'deadline-flag deadline-flag--warning',
         alertLabel: t.checkouts.dueSoonBadge,
         detailLabel: t.details.dueSoonPrefix,
+        isOverdue: false,
       }
     }
 
@@ -554,6 +561,7 @@ function EquipmentListPage() {
       alertClass: null,
       alertLabel: null,
       detailLabel: t.details.deadlinePrefix,
+      isOverdue: false,
     }
   }
 
@@ -576,6 +584,11 @@ function EquipmentListPage() {
   function renderSortableHeading(field: InventorySortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
+    const sortStateLabel = !isActive
+      ? t.common.sortNotSorted
+      : sortDirection === 'asc'
+        ? t.common.sortAscending
+        : t.common.sortDescending
 
     return (
       <button
@@ -587,6 +600,7 @@ function EquipmentListPage() {
         <span className="data-list__sort-icon" aria-hidden="true">
           {icon}
         </span>
+        <span className="visually-hidden">{sortStateLabel}</span>
       </button>
     )
   }
@@ -750,6 +764,7 @@ function EquipmentListPage() {
               idPrefix="create"
               isSubmitting={isCreating}
               mediaFallbackName={t.inventory.name}
+              onCancel={cancelCreate}
               onCategoryBlur={normalizeCreateCategory}
               onCategoryChange={updateCreateCategory}
               onImageChange={(event) => handleImageChange(event, 'create')}
@@ -762,38 +777,6 @@ function EquipmentListPage() {
           )}
         </section>
       )}
-
-      <InventoryFilters
-        categories={categories}
-        categoryFilter={categoryFilter}
-        equipmentCount={equipments.length}
-        filteredCount={filteredEquipments.length}
-        onCategoryChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            category: value === 'all' ? null : value,
-          })
-        }
-        onReset={resetFilters}
-        onSearchChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            search: value.trim() ? value : null,
-          })
-        }
-        onStatusChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            status: value === 'all' ? null : value,
-            warning: value === 'CheckedOut' ? searchParams.get('warning') : null,
-          })
-        }
-        onWarningChange={(value) =>
-          setMergedSearchParams(setSearchParams, {
-            warning: value === 'all' ? null : value,
-          })
-        }
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        warningFilter={warningFilter}
-      />
 
       <section className="inventory-stack">
           <div className="section-heading section-heading--toolbar">
@@ -833,6 +816,38 @@ function EquipmentListPage() {
               </div>
             </div>
           </div>
+
+          <InventoryFilters
+            categories={categories}
+            categoryFilter={categoryFilter}
+            equipmentCount={equipments.length}
+            filteredCount={filteredEquipments.length}
+            onCategoryChange={(value) =>
+              setMergedSearchParams(setSearchParams, {
+                category: value === 'all' ? null : value,
+              })
+            }
+            onReset={resetFilters}
+            onSearchChange={(value) =>
+              setMergedSearchParams(setSearchParams, {
+                search: value.trim() ? value : null,
+              })
+            }
+            onStatusChange={(value) =>
+              setMergedSearchParams(setSearchParams, {
+                status: value === 'all' ? null : value,
+                warning: value === 'CheckedOut' ? searchParams.get('warning') : null,
+              })
+            }
+            onWarningChange={(value) =>
+              setMergedSearchParams(setSearchParams, {
+                warning: value === 'all' ? null : value,
+              })
+            }
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            warningFilter={warningFilter}
+          />
 
           {equipments.length === 0 ? (
             <div className="empty-state">

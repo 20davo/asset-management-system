@@ -160,6 +160,11 @@ function UsersPage() {
   function renderSortableHeading(field: UserSortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
+    const sortStateLabel = !isActive
+      ? t.common.sortNotSorted
+      : sortDirection === 'asc'
+        ? t.common.sortAscending
+        : t.common.sortDescending
 
     return (
       <button
@@ -171,6 +176,7 @@ function UsersPage() {
         <span className="data-list__sort-icon" aria-hidden="true">
           {icon}
         </span>
+        <span className="visually-hidden">{sortStateLabel}</span>
       </button>
     )
   }
@@ -225,73 +231,73 @@ function UsersPage() {
         </article>
       </section>
 
-      <section className="section-card section-card--compact filter-panel">
-        <div className="filter-panel__grid filter-panel__grid--users">
-          <div className="form-field">
-            <label htmlFor="users-search">{t.common.search}</label>
-            <input
-              id="users-search"
-              type="search"
-              value={searchQuery}
-              onChange={(event) =>
-                setMergedSearchParams(setSearchParams, {
-                  search: event.target.value.trim() ? event.target.value : null,
-                })
-              }
-              placeholder={t.users.searchPlaceholder}
-            />
+      <section className="inventory-stack">
+        <div className="section-heading section-heading--toolbar">
+          <div>
+            <span className="section-heading__eyebrow">{t.users.heroKicker}</span>
+            <h2 className="section-heading__title">{t.users.heroTitle}</h2>
           </div>
-
-          <div className="form-field">
-            <label htmlFor="users-role-filter">{t.common.roleFilterLabel}</label>
-            <select
-              id="users-role-filter"
-              value={roleFilter}
-              onChange={(event) =>
-                setMergedSearchParams(setSearchParams, {
-                  role: event.target.value === 'all' ? null : event.target.value,
-                })
-              }
-            >
-              <option value="all">{t.common.allRoles}</option>
-              <option value="Admin">{getRoleLabel('Admin', language)}</option>
-              <option value="User">{getRoleLabel('User', language)}</option>
-            </select>
+          <div className="section-heading__aside">
+            <p className="section-heading__text">{t.users.heroText}</p>
           </div>
         </div>
 
-        <div className="filter-panel__footer">
-          <p className="filter-panel__summary">
-            {filteredUsers.length} / {users.length}
-          </p>
-          <button type="button" className="button-secondary" onClick={resetFilters}>
-            {t.common.clearFilters}
-          </button>
-        </div>
-      </section>
-
-      {users.length === 0 ? (
-        <div className="empty-state">
-          <h3>{t.users.emptyTitle}</h3>
-          <p>{t.users.emptyText}</p>
-        </div>
-      ) : filteredUsers.length === 0 ? (
-        <div className="empty-state">
-          <h3>{t.users.noResultsTitle}</h3>
-          <p>{t.users.noResultsText}</p>
-        </div>
-      ) : (
-        <section className="inventory-stack">
-          <div className="section-heading section-heading--toolbar">
-            <div>
-              <span className="section-heading__eyebrow">{t.users.heroKicker}</span>
-              <h2 className="section-heading__title">{t.users.heroTitle}</h2>
+        <section className="section-card section-card--compact filter-panel">
+          <div className="filter-panel__grid filter-panel__grid--users">
+            <div className="form-field">
+              <label htmlFor="users-search">{t.common.search}</label>
+              <input
+                id="users-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) =>
+                  setMergedSearchParams(setSearchParams, {
+                    search: event.target.value.trim() ? event.target.value : null,
+                  })
+                }
+                placeholder={t.users.searchPlaceholder}
+              />
             </div>
-            <div className="section-heading__aside">
-              <p className="section-heading__text">{t.users.heroText}</p>
+
+            <div className="form-field">
+              <label htmlFor="users-role-filter">{t.common.roleFilterLabel}</label>
+              <select
+                id="users-role-filter"
+                value={roleFilter}
+                onChange={(event) =>
+                  setMergedSearchParams(setSearchParams, {
+                    role: event.target.value === 'all' ? null : event.target.value,
+                  })
+                }
+              >
+                <option value="all">{t.common.allRoles}</option>
+                <option value="Admin">{getRoleLabel('Admin', language)}</option>
+                <option value="User">{getRoleLabel('User', language)}</option>
+              </select>
             </div>
           </div>
 
+          <div className="filter-panel__footer">
+            <p className="filter-panel__summary">
+              {filteredUsers.length} / {users.length}
+            </p>
+            <button type="button" className="button-secondary" onClick={resetFilters}>
+              {t.common.clearFilters}
+            </button>
+          </div>
+        </section>
+
+        {users.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.users.emptyTitle}</h3>
+            <p>{t.users.emptyText}</p>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.users.noResultsTitle}</h3>
+            <p>{t.users.noResultsText}</p>
+          </div>
+        ) : (
           <div className="data-list data-list--users">
             <div className="data-list__header">
               <span className="data-list__heading">{renderSortableHeading('name', t.common.user)}</span>
@@ -353,8 +359,8 @@ function UsersPage() {
               </article>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   )
 }
