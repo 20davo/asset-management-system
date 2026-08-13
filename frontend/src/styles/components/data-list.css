@@ -84,19 +84,9 @@
   grid-template-columns: minmax(0, 2.1fr) minmax(260px, 1.3fr) 160px 170px 170px 120px;
 }
 
-.data-list--checkouts-with-user .data-list__header,
-.data-list--checkouts-with-user .data-list__row {
-  grid-template-columns: minmax(0, 2.1fr) minmax(190px, 1fr) 150px 170px 170px 170px;
-}
-
 .data-list--checkouts-name-link .data-list__header,
 .data-list--checkouts-name-link .data-list__row {
   grid-template-columns: minmax(0, 2.2fr) 170px 170px 170px 150px;
-}
-
-.data-list--checkouts-with-user-name-link .data-list__header,
-.data-list--checkouts-with-user-name-link .data-list__row {
-  grid-template-columns: minmax(0, 2.1fr) minmax(190px, 1fr) 150px 170px 170px;
 }
 
 .data-list__header {

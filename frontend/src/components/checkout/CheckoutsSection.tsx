@@ -17,9 +17,7 @@ import {
 } from '../../utils/searchParams'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
 
-type CheckoutFilter = 'all' | 'active' | 'overdue' | 'closed'
-type FilterMode = 'checkout' | 'equipment' | 'none'
-type CheckoutSortField = 'asset' | 'user' | 'status' | 'checkedOutAt' | 'dueAt' | 'returnedAt'
+type CheckoutHistorySortField = 'asset' | 'status' | 'checkedOutAt' | 'dueAt' | 'returnedAt'
 
 interface CheckoutsSectionProps {
   items: CheckoutItem[]
@@ -29,24 +27,9 @@ interface CheckoutsSectionProps {
   heroKicker: string
   heroTitle: string
   heroText: string
-  showUserColumn?: boolean
-  getUserLink?: (checkout: CheckoutItem) => string
   linkAssetNameOnly?: boolean
   compact?: boolean
   queryKeyPrefix: string
-  filterMode?: FilterMode
-}
-
-function getCheckoutState(checkout: CheckoutItem): Exclude<CheckoutFilter, 'all'> {
-  if (checkout.returnedAt) {
-    return 'closed'
-  }
-
-  if (isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)) {
-    return 'overdue'
-  }
-
-  return 'active'
 }
 
 function getCheckoutTimelineState(checkout: CheckoutItem) {
@@ -75,12 +58,9 @@ export function CheckoutsSection({
   heroKicker,
   heroTitle,
   heroText,
-  showUserColumn = false,
-  getUserLink,
   linkAssetNameOnly = false,
   compact = false,
   queryKeyPrefix,
-  filterMode = 'checkout',
 }: CheckoutsSectionProps) {
   const { language, t } = useLanguage()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -91,12 +71,6 @@ export function CheckoutsSection({
     'list',
   )
   const searchQuery = getTextSearchParam(searchParams, `${queryKeyPrefix}-search`)
-  const checkoutStateFilter = getEnumSearchParam(
-    searchParams,
-    `${queryKeyPrefix}-state`,
-    ['all', 'active', 'overdue', 'closed'] as const,
-    'all',
-  )
   const equipmentStatusFilter = getEnumSearchParam(
     searchParams,
     `${queryKeyPrefix}-status`,
@@ -106,7 +80,7 @@ export function CheckoutsSection({
   const sortField = getEnumSearchParam(
     searchParams,
     `${queryKeyPrefix}-sort`,
-    ['asset', 'user', 'status', 'checkedOutAt', 'dueAt', 'returnedAt'] as const,
+    ['asset', 'status', 'checkedOutAt', 'dueAt', 'returnedAt'] as const,
     'checkedOutAt',
   )
   const sortDirection = getEnumSearchParam(
@@ -126,17 +100,10 @@ export function CheckoutsSection({
     const normalizedQuery = searchQuery.trim().toLowerCase()
 
     const result = items.filter((checkout) => {
-      const checkoutState = getCheckoutState(checkout)
-      const matchesFilter =
-        filterMode === 'checkout'
-          ? checkoutStateFilter === 'all'
-            ? true
-            : checkoutState === checkoutStateFilter
-          : filterMode === 'equipment'
-            ? equipmentStatusFilter === 'all'
-              ? true
-              : checkout.equipment.status === equipmentStatusFilter
-            : true
+      const matchesStatus =
+        equipmentStatusFilter === 'all'
+          ? true
+          : checkout.equipment.status === equipmentStatusFilter
 
       const matchesSearch =
         normalizedQuery.length === 0
@@ -153,7 +120,7 @@ export function CheckoutsSection({
               .toLowerCase()
               .includes(normalizedQuery)
 
-      return matchesFilter && matchesSearch
+      return matchesStatus && matchesSearch
     })
 
     result.sort((left, right) => {
@@ -162,8 +129,6 @@ export function CheckoutsSection({
       switch (sortField) {
         case 'asset':
           return left.equipment.name.localeCompare(right.equipment.name, language) * multiplier
-        case 'user':
-          return left.user.name.localeCompare(right.user.name, language) * multiplier
         case 'status':
           return (
             getStatusLabel(left.equipment.status, language).localeCompare(
@@ -189,9 +154,7 @@ export function CheckoutsSection({
 
     return result
   }, [
-    checkoutStateFilter,
     equipmentStatusFilter,
-    filterMode,
     items,
     language,
     searchQuery,
@@ -202,7 +165,6 @@ export function CheckoutsSection({
   function resetFilters() {
     setMergedSearchParams(setSearchParams, {
       [`${queryKeyPrefix}-search`]: null,
-      [`${queryKeyPrefix}-state`]: null,
       [`${queryKeyPrefix}-status`]: null,
       [`${queryKeyPrefix}-sort`]: null,
       [`${queryKeyPrefix}-dir`]: null,
@@ -210,7 +172,7 @@ export function CheckoutsSection({
     })
   }
 
-  function renderSortableHeading(field: CheckoutSortField, label: string) {
+  function renderSortableHeading(field: CheckoutHistorySortField, label: string) {
     const isActive = sortField === field
     const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
     const sortStateLabel = !isActive
@@ -287,28 +249,6 @@ export function CheckoutsSection({
         </button>
       </div>
     )
-  }
-
-  function renderUserBlock(checkout: CheckoutItem) {
-    const userLink = getUserLink?.(checkout)
-    const content = (
-      <>
-        <strong className="data-list__context-name context-link__primary">
-          {checkout.user.name}
-        </strong>
-        <span className="data-list__context-label">{checkout.user.email}</span>
-      </>
-    )
-
-    if (userLink) {
-      return (
-        <Link to={userLink} className="context-link context-link--stack">
-          {content}
-        </Link>
-      )
-    }
-
-    return <div className="data-list__context-stack">{content}</div>
   }
 
   return (
@@ -394,52 +334,24 @@ export function CheckoutsSection({
                 />
               </div>
 
-              {filterMode !== 'none' && (
-                <div className="form-field">
-                  <label htmlFor={`${heroTitle}-status-filter`}>
-                    {filterMode === 'equipment'
-                      ? t.common.status
-                      : t.checkouts.statusFilterLabel}
-                  </label>
-                  <select
-                    id={`${heroTitle}-status-filter`}
-                    value={
-                      filterMode === 'equipment'
-                        ? equipmentStatusFilter
-                        : checkoutStateFilter
-                    }
-                    onChange={(event) =>
-                      setMergedSearchParams(setSearchParams, {
-                        [`${queryKeyPrefix}-state`]:
-                          filterMode === 'checkout' && event.target.value !== 'all'
-                            ? event.target.value
-                            : null,
-                        [`${queryKeyPrefix}-status`]:
-                          filterMode === 'equipment' && event.target.value !== 'all'
-                            ? event.target.value
-                            : null,
-                      })
-                    }
-                  >
-                    {filterMode === 'checkout' ? (
-                      <>
-                        <option value="all">{t.checkouts.filterAll}</option>
-                        <option value="active">{t.checkouts.filterActive}</option>
-                        <option value="overdue">{t.checkouts.filterOverdue}</option>
-                        <option value="closed">{t.checkouts.filterClosed}</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="all">{t.inventory.allStatuses}</option>
-                        <option value="Available">{t.inventory.available}</option>
-                        <option value="CheckedOut">{t.inventory.checkedOut}</option>
-                        <option value="Maintenance">{t.inventory.maintenance}</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              )}
-
+              <div className="form-field">
+                <label htmlFor={`${heroTitle}-status-filter`}>{t.common.status}</label>
+                <select
+                  id={`${heroTitle}-status-filter`}
+                  value={equipmentStatusFilter}
+                  onChange={(event) =>
+                    setMergedSearchParams(setSearchParams, {
+                      [`${queryKeyPrefix}-status`]:
+                        event.target.value !== 'all' ? event.target.value : null,
+                    })
+                  }
+                >
+                  <option value="all">{t.inventory.allStatuses}</option>
+                  <option value="Available">{t.inventory.available}</option>
+                  <option value="CheckedOut">{t.inventory.checkedOut}</option>
+                  <option value="Maintenance">{t.inventory.maintenance}</option>
+                </select>
+              </div>
             </div>
 
             <div className="filter-panel__footer">
@@ -461,18 +373,11 @@ export function CheckoutsSection({
 
           <div
             className={`data-list ${
-              showUserColumn
-                ? linkAssetNameOnly
-                  ? 'data-list--checkouts-with-user-name-link'
-                  : 'data-list--checkouts-with-user'
-                : linkAssetNameOnly
-                  ? 'data-list--checkouts-name-link'
-                  : 'data-list--checkouts'
+              linkAssetNameOnly ? 'data-list--checkouts-name-link' : 'data-list--checkouts'
             }`}
           >
             <div className="data-list__header">
               <span className="data-list__heading">{renderSortableHeading('asset', t.common.asset)}</span>
-              {showUserColumn && <span className="data-list__heading">{renderSortableHeading('user', t.common.user)}</span>}
               <span className="data-list__heading">{renderSortableHeading('status', t.common.status)}</span>
               <span className="data-list__heading">{renderSortableHeading('checkedOutAt', t.checkouts.checkedOutAt)}</span>
               <span className="data-list__heading">{renderSortableHeading('dueAt', t.checkouts.dueAt)}</span>
@@ -528,13 +433,6 @@ export function CheckoutsSection({
                     </div>
                   </div>
 
-                  {showUserColumn && (
-                    <div className="data-list__cell">
-                      <span className="data-list__mobile-label">{t.common.user}</span>
-                      {renderUserBlock(checkout)}
-                    </div>
-                  )}
-
                   <div className="data-list__cell">
                     <span className="data-list__mobile-label">{t.common.status}</span>
                     <div className="data-list__status-stack">
@@ -576,7 +474,6 @@ export function CheckoutsSection({
             {filteredCheckouts.map((checkout) => {
               const overdue = isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)
               const timelineState = getCheckoutTimelineState(checkout)
-              const userLink = getUserLink?.(checkout)
 
               return (
                 <article
@@ -621,31 +518,6 @@ export function CheckoutsSection({
                           </span>
                         </div>
                       </div>
-
-                      {showUserColumn && (
-                        <div className="inventory-status-context">
-                          <span className="inventory-status-context__label">{t.common.user}</span>
-                          {userLink ? (
-                            <Link to={userLink} className="context-link context-link--stack">
-                              <strong className="inventory-status-context__value">
-                                {checkout.user.name}
-                              </strong>
-                              <span className="inventory-status-context__meta">
-                                {checkout.user.email}
-                              </span>
-                            </Link>
-                          ) : (
-                            <>
-                              <strong className="inventory-status-context__value">
-                                {checkout.user.name}
-                              </strong>
-                              <span className="inventory-status-context__meta">
-                                {checkout.user.email}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      )}
 
                       <div className="equipment-meta">
                         <div className="equipment-meta__item">

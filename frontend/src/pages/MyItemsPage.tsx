@@ -121,7 +121,6 @@ function MyItemsPage() {
         compact
         linkAssetNameOnly
         queryKeyPrefix="history"
-        filterMode="equipment"
       />
     </div>
   )

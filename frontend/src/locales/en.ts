@@ -221,7 +221,6 @@ export const en = {
       sortByLabel: 'Sort by',
       filterAll: 'All records',
       filterActive: 'Active',
-      filterOverdue: 'Overdue',
       filterClosed: 'Returned',
       sortRecent: 'Most recent first',
       sortDueSoon: 'Nearest due date',

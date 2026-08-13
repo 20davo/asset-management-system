@@ -336,7 +336,6 @@ function UserDetailsPage() {
         compact
         linkAssetNameOnly
         queryKeyPrefix="history"
-        filterMode="equipment"
       />
     </div>
   )

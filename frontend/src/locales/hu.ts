@@ -220,7 +220,6 @@ export const hu = {
       sortByLabel: 'Rendezés',
       filterAll: 'Összes rekord',
       filterActive: 'Aktív',
-      filterOverdue: 'Lejárt',
       filterClosed: 'Visszahozva',
       sortRecent: 'Legfrissebb elöl',
       sortDueSoon: 'Legközelebbi határidő',
