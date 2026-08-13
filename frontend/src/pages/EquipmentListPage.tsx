@@ -437,7 +437,9 @@ function EquipmentListPage() {
       const matchesCategory =
         categoryFilter === 'all' ? true : equipment.category === categoryFilter
       const matchesWarning =
-        warningFilter === 'all' ? true : warningState === warningFilter
+        statusFilter !== 'CheckedOut' || warningFilter === 'all'
+          ? true
+          : warningState === warningFilter
 
       return matchesSearch && matchesStatus && matchesCategory && matchesWarning
     })
