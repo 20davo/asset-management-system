@@ -1,0 +1,119 @@
+.auth-aside,
+.auth-page {
+  padding: var(--space-6);
+}
+
+.auth-aside {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.auth-aside__intro {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.auth-highlights {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.auth-highlights__item {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+}
+
+.auth-highlights__item strong {
+  font-size: var(--text-md);
+}
+
+.auth-highlights__item span,
+.auth-page__footer {
+  color: var(--text-secondary);
+}
+
+.auth-page {
+  max-width: 520px;
+  width: 100%;
+  justify-self: end;
+  align-self: start;
+  display: grid;
+  gap: 10px;
+}
+
+.auth-page .auth-form {
+  max-width: 470px;
+  width: 100%;
+  justify-self: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.auth-page .auth-form .form-field + .form-field {
+  margin-top: 0;
+}
+
+.auth-page .auth-page__footer {
+  max-width: 470px;
+  width: 100%;
+  justify-self: center;
+}
+
+.auth-page .form-submit {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border-color: var(--border);
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: var(--primary-text);
+  letter-spacing: -0.01em;
+  box-shadow:
+    var(--shadow-xs),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.auth-page .form-submit:hover {
+  background: linear-gradient(180deg, var(--primary-hover) 0%, var(--primary) 100%);
+  border-color: var(--border-strong);
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.auth-page .form-submit:disabled {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  border-color: var(--border);
+}
+
+.auth-page .auth-form .form-submit {
+  margin-top: 18px;
+}
+
+.auth-page .section-heading--tight {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.auth-page .section-heading--tight > div {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-page .section-heading--tight .section-heading__title {
+  margin-top: 0;
+}
+
+.auth-page .section-heading--tight .section-heading__text {
+  max-width: none;
+  line-height: 1.55;
+}
+
+.auth-page__footer a {
+  color: var(--text-primary);
+  font-weight: var(--weight-bold);
+}

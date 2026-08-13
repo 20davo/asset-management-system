@@ -1,0 +1,34 @@
+.form-error,
+.form-success {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.form-error {
+  background: color-mix(in srgb, var(--error-soft) 78%, rgba(var(--background-rgb), 0.92));
+  border-color: color-mix(in srgb, var(--error-text) 28%, transparent);
+  color: var(--error-text);
+}
+
+.form-success {
+  background: color-mix(in srgb, var(--success-soft) 78%, rgba(var(--background-rgb), 0.92));
+  border-color: color-mix(in srgb, var(--success-text) 24%, transparent);
+  color: var(--success-text);
+}
+
+.floating-feedback {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 50;
+  width: min(calc(100vw - 32px), 720px);
+  transform: translateX(-50%);
+  animation: floatingFeedbackIn 0.18s ease-out;
+}
+
+.floating-feedback .form-error,
+.floating-feedback .form-success {
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}

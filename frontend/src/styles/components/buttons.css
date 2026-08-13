@@ -1,0 +1,94 @@
+.form-actions,
+.equipment-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.equipment-card__actions {
+  margin-top: var(--space-4);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.equipment-card__actions > button,
+.equipment-card__actions > .button-link {
+  height: 32px;
+  min-height: 32px;
+  width: 82px;
+  min-width: 82px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  line-height: 1;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+
+.app button,
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--primary-text);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.app button:hover,
+.button-link:hover {
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.app button:disabled,
+.button-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+.app button.button-secondary,
+.button-link.button-secondary {
+  background: var(--interactive-surface-strong);
+  color: var(--secondary-text);
+  border-color: var(--interactive-border);
+  box-shadow: none;
+}
+
+.app button.button-secondary:hover,
+.button-link.button-secondary:hover {
+  background: var(--interactive-surface-hover);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-xs);
+}
+
+.app button.button-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.app button.button-danger:hover {
+  background: var(--danger-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-submit {
+  min-width: 220px;
+}
+
+.form-submit--full {
+  width: 100%;
+}

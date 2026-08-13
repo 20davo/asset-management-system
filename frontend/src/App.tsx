@@ -168,9 +168,6 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
-        <div className="app-shell__glow app-shell__glow--left" />
-        <div className="app-shell__glow app-shell__glow--right" />
-
         <Navbar />
 
         <main className="app">
