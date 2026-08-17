@@ -12,8 +12,7 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
     public const string AdminEmail = "admin@integration.test";
     public const string AdminPassword = "AdminPassword123!";
 
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:16")
+    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder("postgres:16")
         .Build();
 
     public WebApplicationFactory<Program> Factory { get; private set; } = null!;

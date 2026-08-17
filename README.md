@@ -1,7 +1,7 @@
 # Asset Management System
 
 [![CI](https://github.com/20davo/asset-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/20davo/asset-management-system/actions/workflows/ci.yml)
-![.NET 8](https://img.shields.io/badge/.NET_8-512BD4?logo=dotnet&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET_10-512BD4?logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?logo=postgresql&logoColor=white)
@@ -13,7 +13,7 @@ The idea came from a real gap. Spreadsheets fall apart once more than a few peop
 
 Two roles split the work. Regular users browse the inventory and check assets out and back in. Admins manage the assets, the users, and the full assignment history.
 
-I built it as a full-stack portfolio project with ASP.NET Core 8, React 19 with TypeScript, and PostgreSQL. The whole stack runs in Docker Compose, in development mode and in a production-like mode behind Nginx.
+I built it as a full-stack portfolio project with ASP.NET Core 10, React 19 with TypeScript, and PostgreSQL. The whole stack runs in Docker Compose, in development mode and in a production-like mode behind Nginx.
 
 ## Screenshots
 
@@ -62,7 +62,7 @@ The parts of the codebase that go beyond basic CRUD:
 ```mermaid
 flowchart LR
     B[Browser] -->|"localhost:8080"| N["Nginx<br>serves built React app"]
-    N -->|"/api"| A["ASP.NET Core 8 API"]
+    N -->|"/api"| A["ASP.NET Core 10 API"]
     N -->|"/uploads"| A
     A --> D[("PostgreSQL 16")]
     A --> V[/"uploads volume"/]
@@ -86,7 +86,7 @@ You need Docker Desktop (or Docker Engine with Compose).
 
 ```sh
 cp .env.example .env
-docker compose up --build
+docker compose up --build -d
 ```
 
 Open `http://localhost:5173`. The example values work for local development out of the box, including a bootstrap admin account:
@@ -99,7 +99,7 @@ EF Core migrations run automatically on startup, and the bootstrap admin is crea
 ### Production-like mode
 
 ```sh
-docker compose -f compose.yaml -f compose.prod.yaml up --build
+docker compose -f compose.yaml -f compose.prod.yaml up --build -d
 ```
 
 Open `http://localhost:8080`. In this mode the frontend is a static build served by Nginx, everything runs on one origin, registration is disabled, and login rate limiting is on.
