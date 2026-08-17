@@ -172,6 +172,18 @@ function Navbar() {
                     <span className="navbar__user-role">
                       {user ? getRoleLabel(user.role, language) : t.nav.loggedIn}
                     </span>
+                    <span className="navbar__user-caret" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="m6 9 6 6 6-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
                   </div>
                 </button>
 
@@ -179,12 +191,8 @@ function Navbar() {
                   <div
                     className="navbar__dropdown navbar__dropdown--open"
                     role="menu"
+                    aria-label={t.nav.accountMenu}
                   >
-                    <div className="navbar__dropdown-header">
-                      <span className="navbar__dropdown-kicker">{t.nav.accountMenu}</span>
-                      <p className="navbar__dropdown-text">{t.nav.accountMenuHint}</p>
-                    </div>
-
                     <div className="navbar__menu-links">
                       <NavLink
                         to="/profile"
@@ -214,10 +222,7 @@ function Navbar() {
                             />
                           </svg>
                         </span>
-                        <span className="navbar__menu-link-copy">
-                          <span className="navbar__menu-link-title">{t.nav.profile}</span>
-                          <span className="navbar__menu-link-text">{t.nav.profileHint}</span>
-                        </span>
+                        <span className="navbar__menu-link-title">{t.nav.profile}</span>
                         <span className="navbar__menu-link-arrow" aria-hidden="true">
                           <svg viewBox="0 0 24 24">
                             <path
@@ -261,10 +266,7 @@ function Navbar() {
                             />
                           </svg>
                         </span>
-                        <span className="navbar__menu-link-copy">
-                          <span className="navbar__menu-link-title">{t.nav.settings}</span>
-                          <span className="navbar__menu-link-text">{t.nav.settingsHint}</span>
-                        </span>
+                        <span className="navbar__menu-link-title">{t.nav.settings}</span>
                         <span className="navbar__menu-link-arrow" aria-hidden="true">
                           <svg viewBox="0 0 24 24">
                             <path
