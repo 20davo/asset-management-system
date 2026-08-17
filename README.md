@@ -15,22 +15,20 @@ Two roles split the work. Regular users browse the inventory and check assets ou
 
 I built it as a full-stack portfolio project with ASP.NET Core 8, React 19 with TypeScript, and PostgreSQL. The whole stack runs in Docker Compose, in development mode and in a production-like mode behind Nginx.
 
-## Demo
-
-Watch the [6-minute video walkthrough](https://youtu.be/dxP30sKYmxA) of the main workflows.
+## Screenshots
 
 | Inventory | Asset details |
 | --- | --- |
-| ![Inventory page](./docs/screenshots/inventory.png) | ![Asset details page](./docs/screenshots/details.png) |
+| ![Inventory page](./docs/screenshots/v2/inventory.png) | ![Asset details page](./docs/screenshots/v2/details.png) |
 
 <details>
 <summary>More screenshots (login, user management, account settings)</summary>
 
-![Login page](./docs/screenshots/login.png)
+![Login page](./docs/screenshots/v2/login.png)
 
-![User management page](./docs/screenshots/users.png)
+![User management page](./docs/screenshots/v2/users.png)
 
-![Account settings page](./docs/screenshots/account.png)
+![Account settings page](./docs/screenshots/v2/account.png)
 
 </details>
 
@@ -122,7 +120,7 @@ Database data, uploaded images, and ASP.NET Data Protection keys live in named D
 
 - **Backend, 22 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
 - **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers: the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
-- **Frontend, 14 Vitest tests.** API error and message mapping plus shared feedback component behavior, written with Testing Library.
+- **Frontend, 21 Vitest tests.** API error and message mapping, the shared feedback component, and the asset form, written with Testing Library.
 
 GitHub Actions runs on every push and pull request: backend build and tests, then frontend lint with zero warnings allowed, typecheck, tests, and a production build.
 
