@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { act } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { LanguageProvider } from '../../context/LanguageContext'
 import {
@@ -11,6 +12,20 @@ import {
 // A one pixel GIF, so the preview renders without a network request.
 const PREVIEW_DATA_URL =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+function mockFormRect(top: number, bottom: number) {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    top,
+    bottom,
+    height: bottom - top,
+    left: 0,
+    right: 800,
+    width: 800,
+    x: 0,
+    y: top,
+    toJSON: () => undefined,
+  })
+}
 
 interface RenderFormOptions {
   form?: Partial<EquipmentFormState>
@@ -50,6 +65,46 @@ describe('EquipmentForm', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('leaves the page alone when the whole form already fits on screen', () => {
+    vi.useFakeTimers()
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    mockFormRect(100, window.innerHeight - 100)
+
+    renderForm()
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    expect(scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  it('scrolls down when the form runs past the bottom of the screen', () => {
+    vi.useFakeTimers()
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    mockFormRect(100, window.innerHeight + 400)
+
+    renderForm()
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    expect(scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('scrolls up when the form starts above the top of the screen', () => {
+    vi.useFakeTimers()
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    mockFormRect(-200, window.innerHeight - 100)
+
+    renderForm()
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    expect(scrollIntoView).toHaveBeenCalled()
   })
 
   it('leaves out the cancel button when there is no cancel handler', () => {

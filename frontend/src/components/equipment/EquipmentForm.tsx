@@ -63,9 +63,23 @@ export function EquipmentForm({
   titleBlock,
 }: EquipmentFormProps) {
   const { t } = useLanguage()
+  const formRef = useRef<HTMLFormElement | null>(null)
   const formEndRef = useRef<HTMLDivElement | null>(null)
   const scrollToFormEnd = useCallback(() => {
-    formEndRef.current?.scrollIntoView({
+    const form = formRef.current
+    const formEnd = formEndRef.current
+
+    if (!form || !formEnd) {
+      return
+    }
+
+    const { top, bottom } = form.getBoundingClientRect()
+
+    if (top >= 0 && bottom <= window.innerHeight) {
+      return
+    }
+
+    formEnd.scrollIntoView({
       behavior: 'smooth',
       block: 'end',
     })
@@ -81,7 +95,7 @@ export function EquipmentForm({
   }, [scrollToFormEnd])
 
   return (
-    <form className="auth-form admin-form" onSubmit={onSubmit}>
+    <form ref={formRef} className="auth-form admin-form" onSubmit={onSubmit}>
       {titleBlock && (
         <div className="admin-form__title">
           <div className="admin-form__title-top">
