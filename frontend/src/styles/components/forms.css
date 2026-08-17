@@ -317,6 +317,14 @@
   color: var(--text-muted);
 }
 
+.form-field input:-webkit-autofill,
+.form-field input:-webkit-autofill:hover,
+.form-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  box-shadow: 0 0 0 100px var(--interactive-surface) inset;
+  caret-color: var(--text-primary);
+}
+
 .form-field input:focus,
 .form-field textarea:focus,
 .form-field select:focus {
