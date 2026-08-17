@@ -187,17 +187,6 @@
   word-break: break-word;
 }
 
-.equipment-card__subtitle--record-description {
-  margin-top: 18px;
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-soft) 94%, var(--text-primary) 1%);
-  border: 1px solid color-mix(in srgb, var(--border) 96%, transparent);
-  max-width: 100%;
-  font-size: var(--text-base);
-  line-height: 1.55;
-}
-
 .equipment-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -274,11 +263,9 @@
 }
 
 .equipment-description {
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 .equipment-card__layout--media-first .equipment-description,
@@ -294,25 +281,33 @@
 }
 
 .equipment-card__layout--media-first .equipment-description {
-  margin-top: 8px;
-  background: color-mix(in srgb, var(--surface-soft) 94%, var(--text-primary) 1%);
-  border-color: color-mix(in srgb, var(--border) 96%, transparent);
-}
-
-.equipment-card__layout--media-first .equipment-description__label {
-  opacity: 0.72;
+  margin-top: var(--space-2);
 }
 
 .equipment-description--history-note {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  margin-top: var(--space-3);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .equipment-description__text {
-  margin-top: 8px;
-  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: var(--space-2);
+  line-height: 1.6;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.equipment-description--full .equipment-description__text,
+.equipment-description--history-note .equipment-description__text {
+  display: block;
+  overflow: visible;
+}
+
+.equipment-description--full .equipment-description__text {
+  max-width: 68ch;
 }

@@ -97,9 +97,12 @@ export function EquipmentDetailsMain({
               </div>
               {recordMeta}
               {hasDescription && (
-                <p className="equipment-card__subtitle equipment-card__subtitle--record-description">
-                  {equipment.description}
-                </p>
+                <div className="equipment-description equipment-description--full">
+                  <span className="equipment-description__label">
+                    {t.inventory.description}
+                  </span>
+                  <p className="equipment-description__text">{equipment.description}</p>
+                </div>
               )}
             </div>
             <span className={`${getStatusBadgeClass(equipment.status)} status-badge--strong`}>
