@@ -7,13 +7,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?logo=postgresql&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white)
 
-An internal web app for tracking company equipment. It answers the three questions a small IT team asks every week. What do we own? Who has it right now? When is it coming back?
-
-The idea came from a real gap. Spreadsheets fall apart once more than a few people touch them, and enterprise asset platforms cost more than a small team can justify. This app sits between the two. It follows each asset from checkout to return, without the price tag or the setup work of a full platform.
-
-Two roles split the work. Regular users browse the inventory and check assets out and back in. Admins manage the assets, the users, and the full assignment history.
-
-I built it as a full-stack portfolio project with ASP.NET Core 10, React 19 with TypeScript, and PostgreSQL. The whole stack runs in Docker Compose, in development mode and in a production-like mode behind Nginx.
+This full-stack portfolio project is designed for smaller IT teams as an internal asset tracker. It is meant for those who have outgrown spreadsheets but do not need a full enterprise tool.
 
 ## Screenshots
 
@@ -22,40 +16,39 @@ I built it as a full-stack portfolio project with ASP.NET Core 10, React 19 with
 | ![Inventory page](./docs/screenshots/v2/inventory.png) | ![Asset details page](./docs/screenshots/v2/details.png) |
 
 <details>
-<summary>More screenshots (login, user management, account settings)</summary>
+<summary>More screenshots (login, user management, profile)</summary>
 
 ![Login page](./docs/screenshots/v2/login.png)
 
 ![User management page](./docs/screenshots/v2/users.png)
 
-![Account settings page](./docs/screenshots/v2/account.png)
+![Profile page](./docs/screenshots/v2/account.png)
 
 </details>
 
 ## Features
 
-- JWT login with two roles (admin and regular user), enforced in the API, not only in the UI
-- Equipment inventory with search, filters, due-date warnings, card and list views, and sortable columns
-- Checkout and return flow with due dates, notes, and complete assignment history
-- Admin tools for creating, editing, and deleting assets, a maintenance state, and assigning assets to users
-- User management with role editing and protection rules, including for the last admin account
+- JWT login with rate limiting and two roles (admin and regular user)
+- Self-registration for regular users, which can be turned off per environment
+- Search, filters, due-date warnings, card and list views, and sortable columns across the app's lists
+- Checkout and return flow with due dates, notes, and assignment history
+- Admin tools for creating, editing, and deleting assets, moving them in and out of maintenance, and assigning them to users
+- An assignment log for admins with filters
+- User management with role editing, and a page for each user with their current assets and past assignments
 - A `My Items` page where users see their active and returned assets
-- Equipment image upload with strict validation, served only to signed-in users
-- Bilingual UI (English and Hungarian) with light and dark appearance
-- Registration, login rate limiting, and a bootstrap admin account controlled by environment settings
+- Equipment photos, visible only to signed-in users
+- Bilingual UI (English and Hungarian) with light and dark themes
 
 ## Engineering highlights
 
-The parts of the codebase that go beyond basic CRUD:
+Some parts of the codebase that go beyond basic CRUD:
 
-- **Role and password changes take effect immediately.** Token validation re-checks the user's role and token version in the database on every request ([ServiceCollectionExtensions.cs](./api/AssetManagement/AssetManagement.Api/Extensions/ServiceCollectionExtensions.cs)). A removed admin role locks the user out right away, and changing a password invalidates every earlier token while the current session receives a fresh one.
-- **Defensive upload pipeline.** Images are validated by size, extension, content type, and file signature (magic bytes), stored under random names, and served through an authenticated endpoint instead of public static files ([EquipmentImageService.cs](./api/AssetManagement/AssetManagement.Api/Services/EquipmentImageService.cs)).
-- **One result pattern across the API.** Services return a `ServiceResult` with a machine-readable code. Controllers turn it into the right HTTP response, and the frontend maps the same code to an English or Hungarian message ([ServiceResult.cs](./api/AssetManagement/AssetManagement.Api/Services/ServiceResult.cs), [apiMessages.ts](./frontend/src/utils/apiMessages.ts)).
-- **Same-origin production mode.** In the production-like stack, Nginx serves the built frontend and proxies `/api` and `/uploads`, and the API and database are not published on host ports at all ([compose.prod.yaml](./compose.prod.yaml)).
-- **Fail-fast configuration.** The API refuses to start with a placeholder JWT key or an empty CORS origin list, so a misconfigured deployment fails loudly instead of running insecurely.
-- **Login rate limiting.** A fixed-window limiter per IP and path protects the auth endpoints and returns structured JSON `429` responses.
-- **Concurrency-safe checkout.** A partial unique index allows at most one active assignment per asset at the database level, so two simultaneous checkout requests cannot both succeed. Unique-constraint races on emails and serial numbers are caught and returned as friendly errors instead of `500`s. Integration tests prove this against a real PostgreSQL container.
-- **Shareable list state.** Search, filters, sorting, and view mode live in the URL query string, so any filtered view survives a refresh and can be shared as a link.
+- **Every checkout is saved as its own record.** Each record keeps the due date and the return date, so past assignments stay visible. A partial unique index allows only one open checkout per asset, so two users cannot take the same asset at the same time. An integration test checks this in CI by sending two checkout requests at once, with a real PostgreSQL database behind the API.
+- **Old sessions end right away.** On each request, the API checks the role and token version against the database, so after a role change, a password change, or account deletion, old tokens stop working. This costs one extra database query per request.
+- **Images stay private.** Uploads are checked by their real file type (magic bytes), and only signed-in users can see them. The frontend loads each image with the token and shows it as a blob, because an `<img>` tag cannot send a token.
+- **Status changes have their own endpoints.** The general update endpoint cannot change an asset's status. Checkout, return, and maintenance go through separate endpoints, and each one checks whether the change is allowed. For example, a checked-out asset cannot go to maintenance.
+- **Error messages use shared codes.** The API sends a code like `equipment.notAvailableForCheckout` with each error from the services, and the frontend turns it into an English or Hungarian message.
+- **Search and filter settings are saved in the URL.** Search text, filters, sorting, and the card or list layout stay the same after a page refresh, and the same view can be shared as a link.
 
 ## Architecture
 
@@ -68,12 +61,12 @@ flowchart LR
     A --> V[/"uploads volume"/]
 ```
 
-The diagram shows the production-like mode. The development stack has no Nginx. There the Vite dev server runs on port 5173 and calls the API directly on port 5071, with CORS configured for it.
+The diagram shows the **production-like** mode. The development stack has no Nginx. There the Vite dev server runs on port 5173 and calls the API directly on port 5071, with CORS configured for it.
 
-Backend requests flow through thin controllers into a service layer behind interfaces, which uses EF Core with PostgreSQL. Responses use DTOs, so EF entities never leave the API.
+Each backend request goes through a thin controller to a service layer behind interfaces, which uses EF Core with PostgreSQL. Responses use DTOs, so EF entities never leave the API.
 
 ```text
-api/AssetManagement/      ASP.NET Core solution (API project + xUnit test project)
+api/AssetManagement/      ASP.NET Core solution (API project and two test projects)
 frontend/                 React + TypeScript app (Vite)
 compose.yaml              development stack
 compose.prod.yaml         production-like overrides (Nginx, no exposed API/DB ports)
@@ -89,7 +82,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Open `http://localhost:5173`. The example values work for local development out of the box, including a bootstrap admin account:
+Open `http://localhost:5173`. The example values are ready for local development, including a bootstrap admin account:
 
 - email: `admin@assetmanagement.local`
 - password: `Admin123!`
@@ -109,32 +102,50 @@ Open `http://localhost:8080`. In this mode the frontend is a static build served
 All settings come from a root `.env` file, documented in [.env.example](./.env.example). The main groups:
 
 - host ports and PostgreSQL credentials
-- JWT key, issuer, and audience (the API does not start without a real key)
+- JWT key, issuer, and audience (the API does not start without a key, and the example key is for local use only)
 - registration and bootstrap admin switches
 - login rate limit settings
 - CORS origins
 
-Database data, uploaded images, and ASP.NET Data Protection keys live in named Docker volumes, so they survive container recreation.
+Database data, uploaded images, and ASP.NET Data Protection keys live in named Docker volumes, so they are kept when containers are recreated.
 
 ## Tests and CI
 
-- **Backend, 22 xUnit tests.** Controller-level tests over an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
-- **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers: the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
-- **Frontend, 21 Vitest tests.** API error and message mapping, the shared feedback component, and the asset form, written with Testing Library.
+- **Backend, 22 xUnit tests.** Controller-level tests using an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
+- **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers. They cover the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
+- **Frontend, 21 Vitest tests.** API error and message mapping, the success and error message component, and the asset form. The component tests use Testing Library.
 
-GitHub Actions runs on every push and pull request: backend build and tests, then frontend lint with zero warnings allowed, typecheck, tests, and a production build.
+To run the tests locally, you need the .NET 10 SDK and Node.js.
 
 ```sh
 # backend
 cd api/AssetManagement && dotnet test
 
 # frontend
-cd frontend && npm run test
+cd frontend && npm ci && npm run test
+```
+
+GitHub Actions runs this pipeline automatically.
+
+```mermaid
+---
+title: CI pipeline
+---
+%%{init: {"flowchart": {"nodeSpacing": 20}}}%%
+flowchart LR
+    T["Push to main or PR"] --> B1
+    T --> F1
+    subgraph Backend
+        B1["Restore"] --> B2["Build"] --> B3["Unit + integration tests"]
+    end
+    subgraph Frontend
+        F1["npm ci"] --> F2["Lint, 0 warnings"] --> F3["Typecheck"] --> F4["Tests"] --> F5["Build"]
+    end
 ```
 
 ## API overview
 
-The API serves JSON under `/api` with JWT Bearer authentication. In this project a `checkout` is one assignment record. It stores which user has an asset, from when, with what due date, and when it was returned.
+The API serves JSON under `/api` with JWT Bearer authentication, and Swagger UI is available in development mode. In the endpoints, `checkout` means one assignment record of an asset to a user.
 
 <details>
 <summary>Endpoint reference</summary>
@@ -154,7 +165,7 @@ The API serves JSON under `/api` with JWT Bearer authentication. In this project
 | `GET` | `/api/equipment` | Signed-in users | List inventory items |
 | `GET` | `/api/equipment/{id}` | Signed-in users | Get asset details |
 | `POST` | `/api/equipment` | Admin | Create an asset, optionally with an image |
-| `PUT` | `/api/equipment/{id}` | Admin | Update asset metadata and image |
+| `PUT` | `/api/equipment/{id}` | Admin | Update asset details and image |
 | `DELETE` | `/api/equipment/{id}` | Admin | Delete an asset if it is not assigned |
 | `POST` | `/api/equipment/{id}/checkout` | Signed-in users | Create an asset assignment |
 | `POST` | `/api/equipment/{id}/return` | Assigned user or admin | Return an asset and close the assignment |
@@ -182,12 +193,11 @@ The API serves JSON under `/api` with JWT Bearer authentication. In this project
 
 </details>
 
-Some of the rules the API enforces on top of the endpoint list:
+Some rules the API checks beyond the access levels above:
 
 - the last admin account cannot be deleted, and admins cannot remove their own admin role
 - assets with an active assignment cannot be deleted
 - admins assign assets to regular users and cannot assign assets to themselves
-- Swagger UI is available in development mode
 
 ## Known limitations
 
@@ -197,12 +207,12 @@ This is a portfolio project, so some production decisions are intentionally simp
 | --- | --- |
 | JWT stored in browser `localStorage` | Secure `HttpOnly` cookies |
 | Two fixed roles (admin, user) | Policy-based authorization for finer permissions |
-| Forwarded headers trust all proxies in the demo setup | Trust only the real reverse proxy |
+| Deleting a user or an asset also deletes its assignment history | Deactivate users and archive assets instead, so the history is kept |
 | IP-based login rate limiting | Add per-account lockout rules |
 | EF Core migrations run on startup | Separate migration step in deployment, with backups |
 | Uploads stored on a Docker volume | Object storage with scanning and backups |
 | Secrets come from local environment variables | Secret manager in deployed environments |
-| No HTTPS or real domain in the demo hosting | TLS, domain routing, certificate renewal |
+| No HTTPS or real domain in the local setup | TLS, domain routing, certificate renewal |
 | Unit tests plus API integration tests | Frontend end-to-end coverage |
 | No monitoring | Structured logs, health checks, metrics, error tracking |
 
