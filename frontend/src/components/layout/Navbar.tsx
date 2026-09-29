@@ -49,7 +49,7 @@ function Navbar() {
         <NavLink to={isAuthenticated ? '/' : '/login'} className="navbar__brand">
           <span className="navbar__brand-mark">AM</span>
           <span className="navbar__brand-copy">
-            <span className="navbar__brand-title">Asset Management</span>
+            <span className="navbar__brand-title">{t.appName}</span>
             <span className="navbar__brand-subtitle">{t.brandSubtitle}</span>
           </span>
         </NavLink>

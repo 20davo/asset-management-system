@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../api/authApi'
+import authRegistrationImage from '../assets/auth-registration.webp'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useLanguage } from '../context/LanguageContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
@@ -67,26 +68,15 @@ function RegisterPage() {
   return (
     <div className="auth-layout">
       <section className="auth-aside">
-        <div className="auth-aside__intro">
-          <span className="page-kicker">{t.auth.registerKicker}</span>
-          <h1 className="page-title">{t.auth.registerHeroTitle}</h1>
-          <p className="page-subtitle">{t.auth.registerHeroText}</p>
-        </div>
-
-        <div className="auth-highlights">
-          <div className="auth-highlights__item">
-            <strong>{t.auth.registerHighlightsWorkspaceTitle}</strong>
-            <span>{t.auth.registerHighlightsWorkspaceText}</span>
-          </div>
-          <div className="auth-highlights__item">
-            <strong>{t.auth.registerHighlightsNavTitle}</strong>
-            <span>{t.auth.registerHighlightsNavText}</span>
-          </div>
-          <div className="auth-highlights__item">
-            <strong>{t.auth.registerHighlightsFeedbackTitle}</strong>
-            <span>{t.auth.registerHighlightsFeedbackText}</span>
-          </div>
-        </div>
+        <h1 className="page-title">{t.auth.registerHeroTitle}</h1>
+        <p className="page-subtitle">{t.auth.registerHeroText}</p>
+        <img
+          src={authRegistrationImage}
+          alt=""
+          width={766}
+          height={525}
+          className="auth-aside__image auth-aside__image--wide"
+        />
       </section>
 
       <section className="auth-page">

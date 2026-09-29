@@ -23,7 +23,6 @@
 }
 
 .page-hero,
-.auth-aside,
 .auth-page,
 .section-card,
 .equipment-card,
@@ -272,7 +271,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 440px;
   gap: var(--space-6);
-  align-items: start;
+  align-items: stretch;
   max-width: 1080px;
   margin: 0 auto;
 }

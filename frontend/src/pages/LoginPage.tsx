@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import authLoginImage from '../assets/auth-login.webp'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
 import { REGISTRATION_ENABLED } from '../config/featureFlags'
@@ -61,26 +62,15 @@ function LoginPage() {
   return (
     <div className="auth-layout">
       <section className="auth-aside">
-        <div className="auth-aside__intro">
-          <span className="page-kicker">{t.auth.loginKicker}</span>
-          <h1 className="page-title">{t.auth.loginHeroTitle}</h1>
-          <p className="page-subtitle">{t.auth.loginHeroText}</p>
-        </div>
-
-        <div className="auth-highlights">
-          <div className="auth-highlights__item">
-            <strong>{t.auth.highlightsInventoryTitle}</strong>
-            <span>{t.auth.highlightsInventoryText}</span>
-          </div>
-          <div className="auth-highlights__item">
-            <strong>{t.auth.highlightsAdminTitle}</strong>
-            <span>{t.auth.highlightsAdminText}</span>
-          </div>
-          <div className="auth-highlights__item">
-            <strong>{t.auth.highlightsTrackingTitle}</strong>
-            <span>{t.auth.highlightsTrackingText}</span>
-          </div>
-        </div>
+        <h1 className="page-title">{t.auth.loginHeroTitle}</h1>
+        <p className="page-subtitle">{t.auth.loginHeroText}</p>
+        <img
+          src={authLoginImage}
+          alt=""
+          width={923}
+          height={640}
+          className="auth-aside__image"
+        />
       </section>
 
       <section className="auth-page">

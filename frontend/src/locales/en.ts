@@ -1,5 +1,6 @@
 export const en = {
     brandSubtitle: 'Operations Console',
+    appName: 'Asset Management',
     nav: {
       inventory: 'Inventory',
       users: 'Users',
@@ -10,7 +11,7 @@ export const en = {
       allCheckoutsHint: 'Every assignment, across all users.',
       myItemsHint: 'Your assets and history.',
       login: 'Login',
-      register: 'Register',
+      register: 'Registration',
       activeSession: 'Active session',
       loggedIn: 'Logged in',
       accountMenu: 'Account',
@@ -25,33 +26,14 @@ export const en = {
       darkMode: 'Dark',
     },
     auth: {
-      loginKicker: 'Secure access',
-      loginHeroTitle: 'Pick up where you left off',
-      loginHeroText:
-        'Sign in to see what is assigned, what is available, and what needs attention.',
-      registerKicker: 'Account setup',
-      registerHeroTitle: "Let's get started",
-      registerHeroText:
-        'Create an account to sign in and see the assets that belong to you.',
-      highlightsInventoryTitle: 'Current statuses',
-      highlightsInventoryText:
-        'See what is available, what is checked out, and what is in maintenance.',
-      highlightsAdminTitle: 'Organized records',
-      highlightsAdminText:
-        'Assets and the people who have them, in one place.',
-      highlightsTrackingTitle: 'Keep track of your own',
-      highlightsTrackingText: 'Your items, your due dates, your history.',
-      registerHighlightsWorkspaceTitle: 'Clear interface',
-      registerHighlightsWorkspaceText: 'Nothing on screen that you do not need.',
-      registerHighlightsNavTitle: 'Quick navigation',
-      registerHighlightsNavText: 'The main pages are one click away.',
-      registerHighlightsFeedbackTitle: 'Clear feedback',
-      registerHighlightsFeedbackText:
-        'Every action tells you what happened.',
+      loginHeroTitle: 'Pick up where you left off.',
+      loginHeroText: 'Track your assets and keep an eye on due dates.',
+      registerHeroTitle: "Let's get started.",
+      registerHeroText: 'Create an account to see your assets.',
       welcomeBack: 'Welcome back',
       createAccess: 'New account',
       loginTitle: 'Login',
-      registerTitle: 'Register',
+      registerTitle: 'Registration',
       loginText: 'Sign in to continue managing assets.',
       registerText: 'Set up a new account to get started.',
       email: 'Email',

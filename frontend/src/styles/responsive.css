@@ -25,6 +25,15 @@
     justify-self: stretch;
   }
 
+  .auth-aside {
+    grid-template-rows: none;
+    padding: 0;
+  }
+
+  .auth-aside__image {
+    display: none;
+  }
+
   .page-hero__panel {
     justify-items: start;
     text-align: left;
@@ -42,8 +51,7 @@
   .page-hero,
   .section-card,
   .equipment-card,
-  .auth-page,
-  .auth-aside {
+  .auth-page {
     padding: var(--space-4);
   }
 
