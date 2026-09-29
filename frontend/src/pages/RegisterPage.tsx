@@ -68,8 +68,10 @@ function RegisterPage() {
   return (
     <div className="auth-layout">
       <section className="auth-aside">
-        <h1 className="page-title">{t.auth.registerHeroTitle}</h1>
-        <p className="page-subtitle">{t.auth.registerHeroText}</p>
+        <div className="auth-aside__heading">
+          <h1 className="page-title">{t.auth.registerHeroTitle}</h1>
+          <p className="page-subtitle">{t.auth.registerHeroText}</p>
+        </div>
         <img
           src={authRegistrationImage}
           alt=""

@@ -4,8 +4,17 @@
 
 .auth-aside {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   gap: var(--space-3);
+}
+
+.auth-aside__heading {
+  display: grid;
+  justify-self: start;
+  justify-items: center;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
+  text-align: center;
 }
 
 .auth-aside .page-title {
@@ -14,7 +23,6 @@
 }
 
 .auth-aside .page-subtitle {
-  padding-left: var(--space-6);
   font-size: 20px;
 }
 

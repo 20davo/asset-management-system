@@ -62,8 +62,10 @@ function LoginPage() {
   return (
     <div className="auth-layout">
       <section className="auth-aside">
-        <h1 className="page-title">{t.auth.loginHeroTitle}</h1>
-        <p className="page-subtitle">{t.auth.loginHeroText}</p>
+        <div className="auth-aside__heading">
+          <h1 className="page-title">{t.auth.loginHeroTitle}</h1>
+          <p className="page-subtitle">{t.auth.loginHeroText}</p>
+        </div>
         <img
           src={authLoginImage}
           alt=""
