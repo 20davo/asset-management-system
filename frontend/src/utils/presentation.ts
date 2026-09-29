@@ -52,6 +52,17 @@ export function getRoleLabel(role: UserRole | string, language: Language = 'hu')
   return labels[language][role as keyof (typeof labels)[Language]] ?? role
 }
 
+export function getInitials(name: string | undefined) {
+  return (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join('')
+    .toUpperCase()
+}
+
 export function formatDate(value: string, language: Language = 'hu') {
   const date = new Date(value)
 

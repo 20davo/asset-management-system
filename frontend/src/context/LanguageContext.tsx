@@ -36,6 +36,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, language)
+    document.documentElement.lang = language
   }, [language])
 
   const value = useMemo(

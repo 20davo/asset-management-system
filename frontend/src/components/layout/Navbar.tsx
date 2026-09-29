@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { REGISTRATION_ENABLED } from '../../config/featureFlags'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
-import { getRoleLabel } from '../../utils/presentation'
+import { getInitials, getRoleLabel } from '../../utils/presentation'
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
@@ -47,7 +47,13 @@ function Navbar() {
     <header className="navbar-wrap">
       <nav className="navbar">
         <NavLink to={isAuthenticated ? '/' : '/login'} className="navbar__brand">
-          <span className="navbar__brand-mark">AM</span>
+          <img
+            src="/favicon.svg"
+            alt=""
+            width={34}
+            height={34}
+            className="navbar__brand-mark"
+          />
           <span className="navbar__brand-copy">
             <span className="navbar__brand-title">{t.appName}</span>
             <span className="navbar__brand-subtitle">{t.brandSubtitle}</span>
@@ -164,7 +170,7 @@ function Navbar() {
                 >
                   <div className="navbar__user-card">
                     <span className="navbar__user-avatar" aria-hidden="true">
-                      {user?.name?.trim().charAt(0).toUpperCase() || 'A'}
+                      {getInitials(user?.name) || 'A'}
                     </span>
                     <span className="navbar__user-name">
                       {user?.name ?? t.nav.activeSession}

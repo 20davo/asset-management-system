@@ -40,6 +40,13 @@ export function AppearanceProvider({ children }: AppearanceProviderProps) {
     localStorage.setItem(STORAGE_KEY, appearance)
     document.documentElement.dataset.theme = appearance
     document.documentElement.style.colorScheme = appearance
+
+    const themeColor = getComputedStyle(document.documentElement)
+      .getPropertyValue('--background')
+      .trim()
+    if (themeColor) {
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor)
+    }
   }, [appearance])
 
   const value = useMemo(

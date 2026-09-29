@@ -1,6 +1,6 @@
 export const hu = {
-    brandSubtitle: 'Eszközkezelő',
-    appName: 'Asset Management',
+    brandSubtitle: 'Rendszer',
+    appName: 'Eszközkezelő és nyilvántartó',
     nav: {
       inventory: 'Eszközpark',
       users: 'Felhasználók',
@@ -27,15 +27,15 @@ export const hu = {
     },
     auth: {
       loginHeroTitle: 'Jelentkezz be a folytatáshoz.',
-      loginHeroText: 'Kövesd nyomon az eszközeidet, és figyelj a határidőkre.',
+      loginHeroText: 'Kövesd az eszközeidet, és ne maradj le a határidőkről.',
       registerHeroTitle: 'Új fiók létrehozása.',
-      registerHeroText: 'Hozz létre egy fiókot, és nézd meg az eszközeidet.',
+      registerHeroText: 'Hozz létre egy fiókot, hogy kezelhesd a saját eszközeidet.',
       welcomeBack: 'Üdv újra',
       createAccess: 'Új fiók',
       loginTitle: 'Belépés',
       registerTitle: 'Regisztráció',
       loginText: 'Jelentkezz be az eszközökpark eléréséhez.',
-      registerText: 'Regisztrálj az eszközkezelő alkalmazás használatához.',
+      registerText: 'Regisztrálj az eszközkezelő használatához.',
       email: 'Email',
       password: 'Jelszó',
       name: 'Név',

@@ -1,5 +1,5 @@
 export const en = {
-    brandSubtitle: 'Operations Console',
+    brandSubtitle: 'System',
     appName: 'Asset Management',
     nav: {
       inventory: 'Inventory',
