@@ -318,9 +318,9 @@ export function CheckoutsSection({
           <section className="section-card section-card--compact filter-panel">
             <div className="filter-panel__grid filter-panel__grid--checkout">
               <div className="form-field">
-                <label htmlFor={`${heroTitle}-search`}>{t.common.search}</label>
+                <label htmlFor={`${queryKeyPrefix}-search`}>{t.common.search}</label>
                 <input
-                  id={`${heroTitle}-search`}
+                  id={`${queryKeyPrefix}-search`}
                   type="search"
                   value={searchQuery}
                   onChange={(event) =>
@@ -335,9 +335,9 @@ export function CheckoutsSection({
               </div>
 
               <div className="form-field">
-                <label htmlFor={`${heroTitle}-status-filter`}>{t.common.status}</label>
+                <label htmlFor={`${queryKeyPrefix}-status-filter`}>{t.common.status}</label>
                 <select
-                  id={`${heroTitle}-status-filter`}
+                  id={`${queryKeyPrefix}-status-filter`}
                   value={equipmentStatusFilter}
                   onChange={(event) =>
                     setMergedSearchParams(setSearchParams, {

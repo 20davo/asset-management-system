@@ -29,14 +29,10 @@ function LoginPage() {
       return
     }
 
-    setErrorMessage(
-      language === 'en'
-        ? 'Your session expired. Please sign in again.'
-        : 'A munkameneted lejárt. Jelentkezz be újra.',
-    )
+    setErrorMessage(t.auth.sessionExpired)
 
     navigate('/login', { replace: true })
-  }, [language, location.search, navigate])
+  }, [location.search, navigate, t.auth.sessionExpired])
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target

@@ -34,20 +34,14 @@ function AuthPageRoute({ children }: AuthPageRouteProps) {
 
 function AppNotice() {
   const location = useLocation()
-  const { language } = useLanguage()
+  const { t } = useLanguage()
   const reason = new URLSearchParams(location.search).get('reason')
 
   if (reason !== 'forbidden') {
     return null
   }
 
-  return (
-    <p className="form-error">
-      {language === 'en'
-        ? 'You do not have permission to access that action or page.'
-        : 'Nincs jogosultságod az adott oldal vagy művelet eléréséhez.'}
-    </p>
-  )
+  return <p className="form-error">{t.common.forbidden}</p>
 }
 
 function AppRoutes() {

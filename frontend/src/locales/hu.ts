@@ -64,6 +64,7 @@ export const hu = {
       loginSubmit: 'Bejelentkezés',
       loginSubmitting: 'Bejelentkezés...',
       loginError: 'Sikertelen bejelentkezés.',
+      sessionExpired: 'A munkameneted lejárt. Jelentkezz be újra.',
       registerSubmit: 'Fiók létrehozása',
       registerSubmitting: 'Fiók létrehozása...',
       invalidEmail: 'Adj meg egy érvényes email címet.',
@@ -466,8 +467,14 @@ export const hu = {
       availableSuccess: 'Az eszköz újra elérhető.',
       availableError: 'Nem sikerült elérhetőre állítani az eszközt.',
     },
+    notFound: {
+      kicker: 'Nem található',
+      title: 'Ez az oldal nem érhető el.',
+      text: 'A megadott cím nem létezik, vagy az oldal máshová került.',
+    },
     common: {
       saveInProgress: 'Mentés...',
+      forbidden: 'Nincs jogosultságod az adott oldal vagy művelet eléréséhez.',
       unknownDate: 'Ismeretlen dátum',
       unknownDateTime: 'Ismeretlen időpont',
       me: 'Én',

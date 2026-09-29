@@ -1,4 +1,5 @@
 ﻿import type { Language } from '../context/LanguageContext'
+import { copy } from '../locales/copy'
 import type { UserRole } from '../types/auth'
 import type { EquipmentStatus } from '../types/equipment'
 
@@ -55,7 +56,7 @@ export function formatDate(value: string, language: Language = 'hu') {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return language === 'en' ? 'Unknown date' : 'Ismeretlen dátum'
+    return copy[language].common.unknownDate
   }
 
   return new Intl.DateTimeFormat(getLocale(language), {
@@ -69,7 +70,7 @@ export function formatDateTime(value: string, language: Language = 'hu') {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return language === 'en' ? 'Unknown timestamp' : 'Ismeretlen időpont'
+    return copy[language].common.unknownDateTime
   }
 
   return new Intl.DateTimeFormat(getLocale(language), {

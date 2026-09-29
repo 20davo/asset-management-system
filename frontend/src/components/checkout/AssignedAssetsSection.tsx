@@ -246,9 +246,9 @@ export function AssignedAssetsSection({
       <section className="section-card section-card--compact filter-panel">
         <div className="filter-panel__grid filter-panel__grid--checkout">
           <div className="form-field">
-            <label htmlFor={`${heroTitle}-assets-search`}>{t.common.search}</label>
+            <label htmlFor={`${queryKeyPrefix}-assets-search`}>{t.common.search}</label>
             <input
-              id={`${heroTitle}-assets-search`}
+              id={`${queryKeyPrefix}-assets-search`}
               type="search"
               value={searchQuery}
               onChange={(event) =>
@@ -264,9 +264,9 @@ export function AssignedAssetsSection({
 
           {enableWarningFilter && (
             <div className="form-field">
-              <label htmlFor={`${heroTitle}-assets-warning`}>{t.common.warningFilterLabel}</label>
+              <label htmlFor={`${queryKeyPrefix}-assets-warning`}>{t.common.warningFilterLabel}</label>
               <select
-                id={`${heroTitle}-assets-warning`}
+                id={`${queryKeyPrefix}-assets-warning`}
                 value={warningFilter}
                 onChange={(event) =>
                   setMergedSearchParams(setSearchParams, {

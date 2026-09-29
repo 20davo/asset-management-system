@@ -66,6 +66,7 @@ export const en = {
       loginSubmit: 'Sign in',
       loginSubmitting: 'Signing in...',
       loginError: 'Sign-in failed.',
+      sessionExpired: 'Your session expired. Please sign in again.',
       registerSubmit: 'Create account',
       registerSubmitting: 'Registering...',
       invalidEmail: 'Enter a valid email address.',
@@ -468,8 +469,14 @@ export const en = {
       availableSuccess: 'Asset is available again.',
       availableError: 'Could not mark the asset as available.',
     },
+    notFound: {
+      kicker: 'Not found',
+      title: 'This page is not available.',
+      text: 'The address is not valid, or the page has moved.',
+    },
     common: {
       saveInProgress: 'Saving...',
+      forbidden: 'You do not have permission to access that action or page.',
       unknownDate: 'Unknown date',
       unknownDateTime: 'Unknown date and time',
       me: 'Me',
