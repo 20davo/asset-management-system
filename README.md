@@ -11,18 +11,20 @@ This full-stack portfolio project is designed for smaller IT teams as an interna
 
 ## Screenshots
 
-| Inventory | Asset details |
+| Login | Inventory |
 | --- | --- |
-| ![Inventory page](./docs/screenshots/v2/inventory.png) | ![Asset details page](./docs/screenshots/v2/details.png) |
+| ![Login page](./docs/screenshots/v3/login.png) | ![Inventory page](./docs/screenshots/v3/inventory.png) |
 
 <details>
-<summary>More screenshots (login, user management, profile)</summary>
+<summary>More screenshots (asset details, user management, user details, profile)</summary>
 
-![Login page](./docs/screenshots/v2/login.png)
+![Asset details page](./docs/screenshots/v3/asset_details.png)
 
-![User management page](./docs/screenshots/v2/users.png)
+![User management page](./docs/screenshots/v3/users.png)
 
-![Profile page](./docs/screenshots/v2/account.png)
+![User details page](./docs/screenshots/v3/user_details.png)
+
+![Profile page](./docs/screenshots/v3/account.png)
 
 </details>
 
@@ -113,7 +115,7 @@ Database data, uploaded images, and ASP.NET Data Protection keys live in named D
 
 - **Backend, 22 xUnit tests.** Controller-level tests using an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
 - **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers. They cover the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
-- **Frontend, 21 Vitest tests.** API error and message mapping, the success and error message component, and the asset form. The component tests use Testing Library.
+- **Frontend, 25 Vitest tests.** API error and message mapping, the success and error message component, the asset form, the page language setting, and a check that the English and Hungarian texts have the same keys. The component tests use Testing Library.
 
 To run the tests locally, you need the .NET 10 SDK and Node.js.
 
