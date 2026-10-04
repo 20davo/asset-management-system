@@ -1,4 +1,4 @@
-import api from './axios'
+import api from './client'
 import type { CheckoutItem } from '../types/checkout'
 
 export async function getAllCheckouts() {

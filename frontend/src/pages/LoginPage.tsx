@@ -77,10 +77,7 @@ function LoginPage() {
 
       <section className="auth-page">
         <div className="section-heading section-heading--tight">
-          <div>
-            <span className="section-heading__eyebrow">{t.auth.welcomeBack}</span>
-            <h2 className="section-heading__title">{t.auth.loginTitle}</h2>
-          </div>
+          <h2 className="section-heading__title">{t.auth.loginTitle}</h2>
           <p className="section-heading__text">{t.auth.loginText}</p>
         </div>
 

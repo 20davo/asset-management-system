@@ -2,7 +2,7 @@ import type { Language } from '../context/LanguageContext'
 
 const apiMessages = {
   'auth.registrationDisabled': {
-    en: 'New user registration is disabled in this environment.',
+    en: 'Sign-up is disabled in this environment.',
     hu: 'Az új felhasználói regisztráció ebben a környezetben le van tiltva.',
   },
   'auth.invalidEmail': {
@@ -14,7 +14,7 @@ const apiMessages = {
     hu: 'Már létezik felhasználó ezzel az email címmel.',
   },
   'auth.registered': {
-    en: 'Registration completed successfully.',
+    en: 'Signed up successfully.',
     hu: 'Sikeres regisztráció.',
   },
   'auth.invalidCredentials': {

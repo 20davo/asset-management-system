@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 
 function NotFoundPage() {
@@ -5,10 +6,13 @@ function NotFoundPage() {
 
   return (
     <div className="page-shell">
-      <section className="empty-state">
-        <span className="section-heading__eyebrow">{t.notFound.kicker}</span>
+      <section className="not-found">
+        <span className="not-found__code" aria-hidden="true">404</span>
         <h1 className="page-title">{t.notFound.title}</h1>
-        <p>{t.notFound.text}</p>
+        <p className="not-found__text">{t.notFound.text}</p>
+        <Link to="/" className="button-link button-secondary button-form not-found__link">
+          {t.notFound.backLink}
+        </Link>
       </section>
     </div>
   )

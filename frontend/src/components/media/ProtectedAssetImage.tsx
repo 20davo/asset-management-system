@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { handleUnauthorizedResponse } from '../../api/axios'
+import { handleUnauthorizedResponse } from '../../api/client'
 import { resolveAssetImageUrl } from '../../utils/assetImages'
 import { getToken } from '../../utils/tokenStorage'
 

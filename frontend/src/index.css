@@ -12,10 +12,9 @@
 @import './styles/components/buttons.css';
 @import './styles/components/feedback.css';
 @import './styles/components/data-list.css';
-@import './styles/components/equipment.css';
 @import './styles/components/status.css';
 @import './styles/components/details.css';
-@import './styles/components/settings.css';
+@import './styles/components/pages.css';
 
 /* Must stay last: breakpoint overrides. */
 @import './styles/responsive.css';

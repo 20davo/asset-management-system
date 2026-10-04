@@ -1,0 +1,37 @@
+.settings-card {
+  max-width: 380px;
+}
+
+.settings-card .details-props__list {
+  row-gap: var(--space-2);
+}
+
+.not-found {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.not-found .page-title {
+  margin: 0;
+}
+
+.not-found__code {
+  margin-bottom: var(--space-2);
+  font-size: 64px;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--border-strong);
+}
+
+.not-found__text {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+}
+
+.not-found__link {
+  margin-top: var(--space-5);
+}

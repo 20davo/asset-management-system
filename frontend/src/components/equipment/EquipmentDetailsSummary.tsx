@@ -1,18 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
-import type { CheckoutHistoryItem, EquipmentDetails } from '../../types/equipment'
-import { formatDateTime } from '../../utils/presentation'
+import type { EquipmentDetails } from '../../types/equipment'
+import { formatDateTime } from '../../utils/dates'
+import type { CheckoutWarning } from '../../utils/checkoutDeadlines'
 
 interface EquipmentDetailsSummaryProps {
   activeCheckoutDueAt: string | null
-  activeCheckoutDueSoon: boolean
-  activeCheckoutEntry: CheckoutHistoryItem | undefined
-  activeCheckoutOverdue: boolean
+  activeCheckoutUserId: number | null
   activeCheckoutUserName: string | null
-  hasActiveAssignment: boolean
-  canCheckoutNow: boolean
-  canReturnNow: boolean
   canSeeActiveCheckoutDetails: boolean
+  warning: CheckoutWarning | null
   equipment: EquipmentDetails
   isAdminUser: boolean
   lastMovementAt: string | null
@@ -20,14 +17,10 @@ interface EquipmentDetailsSummaryProps {
 
 export function EquipmentDetailsSummary({
   activeCheckoutDueAt,
-  activeCheckoutDueSoon,
-  activeCheckoutEntry,
-  activeCheckoutOverdue,
+  activeCheckoutUserId,
   activeCheckoutUserName,
-  hasActiveAssignment,
-  canCheckoutNow,
-  canReturnNow,
   canSeeActiveCheckoutDetails,
+  warning,
   equipment,
   isAdminUser,
   lastMovementAt,
@@ -35,69 +28,75 @@ export function EquipmentDetailsSummary({
   const { language, t } = useLanguage()
 
   return (
-    <aside className="details-side">
-      <section className="section-card section-card--compact">
-        <div className="section-heading section-heading--tight">
-          <div>
-            <span className="section-heading__eyebrow">{t.details.summaryKicker}</span>
-            <h3 className="section-heading__title">{t.details.summaryTitle}</h3>
-          </div>
+    <div className="details-identity__props">
+      <dl className="details-props__list">
+        <div>
+          <dt>{t.details.activeUserLabel}</dt>
+          <dd>
+            {!activeCheckoutUserName ? (
+              t.details.unassigned
+            ) : isAdminUser && activeCheckoutUserId ? (
+              <Link to={`/users/${activeCheckoutUserId}`} className="context-link">
+                <strong>{activeCheckoutUserName}</strong>
+              </Link>
+            ) : (
+              <strong>{activeCheckoutUserName}</strong>
+            )}
+          </dd>
         </div>
 
-        <div className="info-stack">
-          <div className="info-stack__item">
-            <span className="info-stack__label">{t.details.totalCheckouts}</span>
-            <strong>{equipment.totalCheckoutCount}</strong>
+        {canSeeActiveCheckoutDetails && activeCheckoutDueAt && (
+          <div>
+            <dt>
+              {warning === 'overdue'
+                ? t.details.overduePrefix
+                : warning === 'dueSoon'
+                  ? t.details.dueSoonPrefix
+                  : t.details.deadlinePrefix}
+            </dt>
+            <dd
+              className={
+                warning === 'overdue'
+                  ? 'details-props__value--danger'
+                  : warning === 'dueSoon'
+                    ? 'details-props__value--warning'
+                    : undefined
+              }
+            >
+              {formatDateTime(activeCheckoutDueAt, language)}
+            </dd>
           </div>
-          <div className="info-stack__item">
-            <span className="info-stack__label">{t.details.issueability}</span>
-            <strong>
-              {canCheckoutNow ? t.details.issueabilityYes : t.details.issueabilityNo}
-            </strong>
-          </div>
-          <div className="info-stack__item">
-            <span className="info-stack__label">{t.details.activeUserLabel}</span>
-            <strong>
-              {activeCheckoutUserName ? activeCheckoutUserName : t.details.unassigned}
-            </strong>
-            {isAdminUser && activeCheckoutEntry?.userId && (
-              <Link to={`/users/${activeCheckoutEntry.userId}`} className="context-link">
-                {t.details.openUserHistory}
-              </Link>
-            )}
-          </div>
-          <div className="info-stack__item">
-            <span className="info-stack__label">{t.details.returnability}</span>
-            <strong>
-              {canReturnNow
-                ? t.details.returnabilityYes
-                : hasActiveAssignment
-                  ? t.details.returnabilityRestricted
-                  : t.details.returnabilityNo}
-            </strong>
-          </div>
-          <div className="info-stack__item">
-            <span className="info-stack__label">{t.details.lastEvent}</span>
-            <strong>
-              {lastMovementAt
-                ? formatDateTime(lastMovementAt, language)
-                : t.details.noHistoryNote}
-            </strong>
-          </div>
-          {canSeeActiveCheckoutDetails && activeCheckoutDueAt && (
-            <div className="info-stack__item">
-              <span className="info-stack__label">
-                {activeCheckoutOverdue
-                  ? t.details.overduePrefix
-                  : activeCheckoutDueSoon
-                    ? t.details.dueSoonPrefix
-                    : t.details.deadlinePrefix}
-              </span>
-              <strong>{formatDateTime(activeCheckoutDueAt, language)}</strong>
-            </div>
-          )}
+        )}
+
+        <div>
+          <dt>{t.details.category}</dt>
+          <dd>{equipment.category}</dd>
         </div>
-      </section>
-    </aside>
+
+        <div>
+          <dt>{t.details.serial}</dt>
+          <dd>{equipment.serialNumber}</dd>
+        </div>
+
+        <div>
+          <dt>{t.details.recorded}</dt>
+          <dd>{formatDateTime(equipment.createdAt, language)}</dd>
+        </div>
+
+        <div>
+          <dt>{t.details.lastEvent}</dt>
+          <dd>
+            {lastMovementAt ? formatDateTime(lastMovementAt, language) : t.details.noHistoryNote}
+          </dd>
+        </div>
+
+        {isAdminUser && (
+          <div>
+            <dt>{t.details.totalCheckouts}</dt>
+            <dd>{equipment.totalCheckoutCount}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
   )
 }

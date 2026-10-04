@@ -1,29 +1,34 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   checkoutEquipment,
   getEquipmentById,
+  getEquipments,
   markEquipmentAvailable,
   markEquipmentMaintenance,
   returnEquipment,
+  updateEquipment,
 } from '../api/equipmentApi'
+import { getMyCheckouts } from '../api/checkoutApi'
 import { getUsers } from '../api/userApi'
 import { useAuth } from '../context/AuthContext'
-import type { EquipmentDetails } from '../types/equipment'
+import type { CheckoutItem } from '../types/checkout'
+import type { CheckoutHistoryItem, EquipmentDetails } from '../types/equipment'
 import type { ManagedUser } from '../types/user'
-import {
-  formatDateTime,
-  getStatusLabel,
-  isCheckoutDueSoon,
-  isCheckoutOverdue,
-} from '../utils/presentation'
+import { getCheckoutWarning, type CheckoutWarning } from '../utils/checkoutDeadlines'
 import { useLanguage } from '../context/LanguageContext'
+import { Icon } from '../components/shared/Icon'
 import { EquipmentCheckoutHistory } from '../components/equipment/EquipmentCheckoutHistory'
-import { EquipmentDetailsMain } from '../components/equipment/EquipmentDetailsMain'
+import { EquipmentDetailsCard } from '../components/equipment/EquipmentDetailsCard'
 import { EquipmentDetailsSummary } from '../components/equipment/EquipmentDetailsSummary'
+import { EquipmentForm } from '../components/equipment/EquipmentForm'
+import { EquipmentStatusButton } from '../components/equipment/EquipmentStatusButton'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
+import { getUniqueCategories, useEquipmentForm } from '../hooks/useEquipmentForm'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { getApiMessage } from '../utils/apiMessages'
+
+const MAX_LOAN_DAYS = 30
 
 function formatDateTimeLocal(date: Date) {
   const year = date.getFullYear()
@@ -35,6 +40,21 @@ function formatDateTimeLocal(date: Date) {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+function toOwnHistory(checkouts: CheckoutItem[], equipmentId: number): CheckoutHistoryItem[] {
+  return checkouts
+    .filter((checkout) => checkout.equipment.id === equipmentId)
+    .sort((a, b) => new Date(b.checkedOutAt).getTime() - new Date(a.checkedOutAt).getTime())
+    .map((checkout) => ({
+      id: checkout.id,
+      checkedOutAt: checkout.checkedOutAt,
+      dueAt: checkout.dueAt,
+      returnedAt: checkout.returnedAt,
+      note: checkout.note,
+      userId: checkout.user.id,
+      userName: checkout.user.name,
+      userEmail: checkout.user.email,
+    }))
+}
 
 function EquipmentDetailsPage() {
   const { id } = useParams()
@@ -43,6 +63,7 @@ function EquipmentDetailsPage() {
   const isAdminUser = user?.role === 'Admin'
 
   const [equipment, setEquipment] = useState<EquipmentDetails | null>(null)
+  const [ownCheckouts, setOwnCheckouts] = useState<CheckoutHistoryItem[] | null>([])
   const [assignableUsers, setAssignableUsers] = useState<ManagedUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -56,8 +77,20 @@ function EquipmentDetailsPage() {
     note: '',
   })
   const [minimumDueAt, setMinimumDueAt] = useState(formatDateTimeLocal(new Date()))
+  const [dueMode, setDueMode] = useState<'date' | 'open'>('date')
 
   const [returnNote, setReturnNote] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const categoriesRequest = useRef<Promise<string[]> | null>(null)
+  const editForm = useEquipmentForm({
+    categories,
+    onClearMessages: () => {
+      setErrorMessage('')
+      setSuccessMessage('')
+    },
+    onError: setErrorMessage,
+  })
 
   const loadEquipmentDetails = useCallback(async () => {
     if (!id) {
@@ -68,14 +101,19 @@ function EquipmentDetailsPage() {
 
     try {
       setErrorMessage('')
-      const data = await getEquipmentById(Number(id))
+      // The details endpoint sends no history to regular users, so their own records come from /checkout/my.
+      const [data, myCheckouts] = await Promise.all([
+        getEquipmentById(Number(id)),
+        isAdminUser ? Promise.resolve([]) : getMyCheckouts().catch(() => null),
+      ])
       setEquipment(data)
+      setOwnCheckouts(myCheckouts && toOwnHistory(myCheckouts, data.id))
     } catch (error: unknown) {
       setErrorMessage(getApiErrorMessage(error, t.details.loadError, language))
     } finally {
       setIsLoading(false)
     }
-  }, [id, language, t.details.loadError, t.details.missingId])
+  }, [id, isAdminUser, language, t.details.loadError, t.details.missingId])
 
   useEffect(() => {
     void loadEquipmentDetails()
@@ -173,6 +211,53 @@ function EquipmentDetailsPage() {
     }
   }
 
+  function startEdit(current: EquipmentDetails) {
+    setErrorMessage('')
+    setSuccessMessage('')
+    editForm.setForm({
+      name: current.name,
+      category: current.category,
+      description: current.description ?? '',
+      image: null,
+      imagePreviewUrl: current.imageUrl ?? '',
+      removeImage: false,
+      serialNumber: current.serialNumber,
+    })
+    setIsEditing(true)
+
+    categoriesRequest.current = getEquipments()
+      .then((items) => getUniqueCategories(items.map((item) => item.category), language))
+      .catch(() => [])
+    void categoriesRequest.current.then(setCategories)
+  }
+
+  async function handleEditSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!id) {
+      return
+    }
+
+    setErrorMessage('')
+    setSuccessMessage('')
+    setIsSubmitting(true)
+
+    try {
+      // Waits for the category list, so "laptop" still becomes an existing "Laptop".
+      const knownCategories = (await categoriesRequest.current) ?? categories
+      const response = await updateEquipment(Number(id), editForm.getPayload(knownCategories))
+
+      setSuccessMessage(getApiMessage(response.code, language) ?? t.inventory.updateSuccess)
+      setIsEditing(false)
+
+      await loadEquipmentDetails()
+    } catch (error: unknown) {
+      setErrorMessage(getApiErrorMessage(error, t.inventory.updateError, language))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   async function handleMarkMaintenance() {
     if (!id) {
       return
@@ -229,8 +314,6 @@ function EquipmentDetailsPage() {
   const canReturnNow = equipment.canReturn
   const latestCheckoutEntry = equipment.checkouts[0]
   const activeCheckoutEntry = equipment.checkouts.find((checkout) => !checkout.returnedAt)
-  const hasActiveAssignment =
-    !!activeCheckoutEntry || equipment.status === 'CheckedOut' || !!equipment.activeCheckoutUserName
   const activeCheckoutUserName =
     activeCheckoutEntry?.userName ?? equipment.activeCheckoutUserName ?? null
   const activeCheckoutDueAt =
@@ -241,229 +324,249 @@ function EquipmentDetailsPage() {
     latestCheckoutEntry?.checkedOutAt ??
     equipment.lastCheckedOutAt ??
     null
-  const activeCheckoutOverdue = activeCheckoutDueAt
-    ? isCheckoutOverdue(activeCheckoutDueAt, null)
-    : false
-  const activeCheckoutDueSoon =
-    activeCheckoutDueAt && !activeCheckoutOverdue
-      ? isCheckoutDueSoon(activeCheckoutDueAt, null)
-      : false
   const canSeeActiveCheckoutDetails =
     isAdminUser || equipment.isCheckedOutByCurrentUser
+  const warning: CheckoutWarning | null = canSeeActiveCheckoutDetails
+    ? getCheckoutWarning(activeCheckoutDueAt, null)
+    : null
+  const actionKind = isEditing ? null : canCheckoutNow ? 'checkout' : canReturnNow ? 'return' : null
+
+  const tools = isAdminUser && !isEditing ? (
+    <>
+      <button
+        type="button"
+        className="button-icon"
+        onClick={() => startEdit(equipment)}
+        title={t.inventory.edit}
+        aria-label={t.inventory.edit}
+      >
+        <Icon kind="edit" />
+      </button>
+
+      <EquipmentStatusButton
+        isBusy={isStatusSubmitting}
+        onMarkAvailable={handleMarkAvailable}
+        onMarkMaintenance={handleMarkMaintenance}
+        status={equipment.status}
+      />
+    </>
+  ) : null
+
+  const editPanel =
+    isEditing && isAdminUser ? (
+      <div className="details-action-panel">
+        <datalist id="details-category-suggestions">
+          {categories.map((category) => (
+            <option key={category} value={category} />
+          ))}
+        </datalist>
+        <EquipmentForm
+          categoryDatalistId="details-category-suggestions"
+          form={editForm.form}
+          idPrefix={`edit-${equipment.id}`}
+          isSubmitting={isSubmitting}
+          mediaFallbackName={equipment.name}
+          onCancel={() => setIsEditing(false)}
+          onCategoryBlur={editForm.normalizeCategory}
+          onCategoryChange={editForm.updateCategory}
+          onImageChange={editForm.handleImageChange}
+          onRemoveImage={editForm.removeImage}
+          onSubmit={handleEditSubmit}
+          setForm={editForm.setForm}
+          submitLabel={t.inventory.saveChanges}
+          submittingLabel={t.inventory.saving}
+        />
+      </div>
+    ) : null
+
+  const actionTitle =
+    actionKind === 'return'
+      ? t.details.returnTitle
+      : isAdminUser
+        ? t.details.assignTitle
+        : t.details.checkoutTitle
+  const actionHint =
+    actionKind === 'return'
+      ? t.details.returnHint
+      : isAdminUser
+        ? t.details.assignHint
+        : t.details.checkoutHint(MAX_LOAN_DAYS)
+  const loanLimit = new Date()
+  loanLimit.setDate(loanLimit.getDate() + MAX_LOAN_DAYS)
+  const maximumDueAt = isAdminUser ? undefined : formatDateTimeLocal(loanLimit)
+
+  const actionForm = actionKind ? (
+    <section
+      className="details-action details-action--card"
+      aria-labelledby="details-action-title"
+    >
+      <h2 id="details-action-title" className="details-action__title">
+        {actionTitle}
+      </h2>
+      <p className="details-action__hint">{actionHint}</p>
+
+      {actionKind === 'checkout' ? (
+        <form className="auth-form details-action__form" onSubmit={handleCheckoutSubmit}>
+          {isAdminUser && (
+            <div className="form-field">
+              <label htmlFor="assignedUserId">{t.details.assignUserLabel}</label>
+              <select
+                id="assignedUserId"
+                value={checkoutForm.assignedUserId}
+                onChange={(event) =>
+                  setCheckoutForm((prev) => ({
+                    ...prev,
+                    assignedUserId: event.target.value,
+                  }))
+                }
+                required
+                disabled={assignableUsers.length === 0}
+              >
+                {assignableUsers.length === 0 ? (
+                  <option value="">{t.details.noAssignableUsers}</option>
+                ) : (
+                  assignableUsers.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>
+                      {candidate.name} ({candidate.email})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
+
+          <div className="details-action__row">
+            {isAdminUser && (
+              <div className="form-field">
+                <label htmlFor="dueMode">{t.details.dueAt}</label>
+                <select
+                  id="dueMode"
+                  value={dueMode}
+                  onChange={(event) => setDueMode(event.target.value as 'date' | 'open')}
+                >
+                  <option value="date">{t.details.dueSpecificDate}</option>
+                  {/* Needs a nullable due date in the API first. */}
+                  <option value="open" disabled>
+                    {t.details.dueUntilFurtherNotice}
+                  </option>
+                </select>
+              </div>
+            )}
+
+            {dueMode === 'date' && (
+              <div className="form-field">
+                <input
+                  id="dueAt"
+                  type="datetime-local"
+                  aria-label={t.details.dueAt}
+                  value={checkoutForm.dueAt}
+                  min={minimumDueAt}
+                  max={maximumDueAt}
+                  onFocus={() => setMinimumDueAt(formatDateTimeLocal(new Date()))}
+                  onChange={(event) =>
+                    setCheckoutForm((prev) => ({
+                      ...prev,
+                      dueAt: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="form-field">
+            <textarea
+              id="checkoutNote"
+              aria-label={t.details.note}
+              value={checkoutForm.note}
+              onChange={(event) =>
+                setCheckoutForm((prev) => ({
+                  ...prev,
+                  note: event.target.value,
+                }))
+              }
+              placeholder={t.details.notePlaceholder}
+              rows={2}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="form-submit"
+            disabled={isSubmitting || (isAdminUser && assignableUsers.length === 0)}
+          >
+            {isSubmitting ? t.common.saveInProgress : t.details.confirm}
+          </button>
+        </form>
+      ) : (
+        <form className="auth-form details-action__form" onSubmit={handleReturnSubmit}>
+          <div className="form-field">
+            <textarea
+              id="returnNote"
+              aria-label={t.details.note}
+              value={returnNote}
+              onChange={(event) => setReturnNote(event.target.value)}
+              placeholder={t.details.notePlaceholder}
+              rows={3}
+            />
+          </div>
+
+          <button type="submit" className="form-submit" disabled={isSubmitting}>
+            {isSubmitting ? t.common.saveInProgress : t.details.confirm}
+          </button>
+        </form>
+      )}
+    </section>
+  ) : null
+
+  const summaryProps = {
+    activeCheckoutDueAt,
+    activeCheckoutUserId: activeCheckoutEntry?.userId ?? null,
+    activeCheckoutUserName,
+    canSeeActiveCheckoutDetails,
+    warning,
+    equipment,
+    isAdminUser,
+    lastMovementAt,
+  }
 
   return (
     <div className="equipment-details-page">
-      <Link to="/" className="back-link">
-        {t.details.back}
-      </Link>
+      <nav className="details-crumbs" aria-label={t.details.breadcrumb}>
+        <Link to="/">{t.nav.inventory}</Link>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{equipment.name}</span>
+      </nav>
 
       {errorMessage && <FeedbackMessage type="error" message={errorMessage} />}
       {successMessage && <FeedbackMessage type="success" message={successMessage} />}
 
-      <section className="page-hero page-hero--details">
-        <div className="page-hero__content">
-          <span className="page-kicker">{t.details.heroKicker}</span>
-          <h1 className="page-title">{equipment.name}</h1>
-          <p className="page-subtitle">{t.details.heroText}</p>
-        </div>
+      <EquipmentDetailsCard
+        aside={<EquipmentDetailsSummary {...summaryProps} />}
+        warning={warning}
+        equipment={equipment}
+        isEditing={editPanel !== null}
+        panel={editPanel}
+        tools={tools}
+      />
 
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.details.activeUserLabel}</span>
-          <strong className="page-hero__panel-value">
-            {activeCheckoutUserName ? activeCheckoutUserName : t.details.unassigned}
-          </strong>
-          <p className="page-hero__panel-text">
-            {activeCheckoutDueAt && canSeeActiveCheckoutDetails
-              ? `${activeCheckoutOverdue
-                  ? t.details.overduePrefix
-                  : activeCheckoutDueSoon
-                    ? t.details.dueSoonPrefix
-                    : t.details.deadlinePrefix}: ${formatDateTime(activeCheckoutDueAt, language)}`
-              : activeCheckoutUserName
-                ? t.details.assignedRestrictedNote
-              : t.details.notIssued}
-          </p>
-          <div className="page-hero__panel-meta">
-            <div className="page-hero__panel-meta-item">
-              <span className="page-hero__panel-label">{t.details.status}</span>
-              <strong>{getStatusLabel(equipment.status, language)}</strong>
-            </div>
-            <div className="page-hero__panel-meta-item">
-              <span className="page-hero__panel-label">{t.details.lastEvent}</span>
-              <strong>
-                {lastMovementAt
-                  ? formatDateTime(lastMovementAt, language)
-                  : t.details.noHistoryNote}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="details-layout">
-        <div className="details-main">
-          <EquipmentDetailsMain
-            activeCheckoutDueAt={activeCheckoutDueAt}
-            activeCheckoutDueSoon={activeCheckoutDueSoon}
-            activeCheckoutOverdue={activeCheckoutOverdue}
-            canSeeActiveCheckoutDetails={canSeeActiveCheckoutDetails}
-            equipment={equipment}
-            isAdminUser={isAdminUser}
-            isStatusSubmitting={isStatusSubmitting}
-            onMarkAvailable={handleMarkAvailable}
-            onMarkMaintenance={handleMarkMaintenance}
+      <div className={`details-body ${actionForm ? '' : 'details-body--single'}`}>
+        {actionForm}
+        {isAdminUser ? (
+          <EquipmentCheckoutHistory checkouts={equipment.checkouts} />
+        ) : (
+          <EquipmentCheckoutHistory
+            checkouts={ownCheckouts ?? []}
+            emptyText={t.details.noOwnHistoryText}
+            errorMessage={ownCheckouts ? undefined : t.details.ownHistoryLoadError}
+            showUser={false}
+            title={t.details.ownHistoryTitle}
           />
-
-          {canCheckoutNow && (
-            <section className="section-card form-section form-section--wide">
-              <div className="section-heading section-heading--tight">
-                <div>
-                  <span className="section-heading__eyebrow">{t.details.checkoutKicker}</span>
-                  <h3 className="section-heading__title">
-                    {isAdminUser ? t.details.assignTitle : t.details.checkoutTitle}
-                  </h3>
-                </div>
-                <p className="section-heading__text">
-                  {isAdminUser ? t.details.assignText : t.details.checkoutText}
-                </p>
-              </div>
-
-              <form className="auth-form" onSubmit={handleCheckoutSubmit}>
-                {isAdminUser && (
-                  <div className="form-field">
-                    <label htmlFor="assignedUserId">{t.details.assignUserLabel}</label>
-                    <select
-                      id="assignedUserId"
-                      value={checkoutForm.assignedUserId}
-                      onChange={(event) =>
-                        setCheckoutForm((prev) => ({
-                          ...prev,
-                          assignedUserId: event.target.value,
-                        }))
-                      }
-                      required
-                      disabled={assignableUsers.length === 0}
-                    >
-                      {assignableUsers.length === 0 ? (
-                        <option value="">{t.details.noAssignableUsers}</option>
-                      ) : (
-                        assignableUsers.map((candidate) => (
-                          <option key={candidate.id} value={candidate.id}>
-                            {candidate.name} ({candidate.email})
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                )}
-
-                <div className="form-field">
-                  <label htmlFor="dueAt">{t.details.dueAt}</label>
-                  <input
-                    id="dueAt"
-                    type="datetime-local"
-                    value={checkoutForm.dueAt}
-                    min={minimumDueAt}
-                    onFocus={() => setMinimumDueAt(formatDateTimeLocal(new Date()))}
-                    onChange={(event) =>
-                      setCheckoutForm((prev) => ({
-                        ...prev,
-                        dueAt: event.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="checkoutNote">{t.details.note}</label>
-                  <textarea
-                    id="checkoutNote"
-                    value={checkoutForm.note}
-                    onChange={(event) =>
-                      setCheckoutForm((prev) => ({
-                        ...prev,
-                        note: event.target.value,
-                      }))
-                    }
-                    placeholder={t.details.notePlaceholder}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    className="form-submit"
-                    disabled={isSubmitting || (isAdminUser && assignableUsers.length === 0)}
-                  >
-                    {isSubmitting
-                      ? t.common.saveInProgress
-                      : isAdminUser
-                        ? t.details.assignSubmit
-                        : t.details.checkoutSubmit}
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
-
-          {canReturnNow && (
-            <section className="section-card form-section form-section--wide">
-              <div className="section-heading section-heading--tight">
-                <div>
-                  <span className="section-heading__eyebrow">{t.details.returnKicker}</span>
-                  <h3 className="section-heading__title">{t.details.returnTitle}</h3>
-                </div>
-                <p className="section-heading__text">{t.details.returnText}</p>
-              </div>
-
-              <form className="auth-form" onSubmit={handleReturnSubmit}>
-                <div className="form-field">
-                  <label htmlFor="returnNote">{t.details.note}</label>
-                  <textarea
-                    id="returnNote"
-                    value={returnNote}
-                    onChange={(event) => setReturnNote(event.target.value)}
-                    placeholder={t.details.notePlaceholder}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    className="form-submit"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? t.common.saveInProgress : t.details.returnSubmit}
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
-
-          {isAdminUser && <EquipmentCheckoutHistory checkouts={equipment.checkouts} />}
-        </div>
-
-        <EquipmentDetailsSummary
-          activeCheckoutDueAt={activeCheckoutDueAt}
-          activeCheckoutDueSoon={activeCheckoutDueSoon}
-          activeCheckoutEntry={activeCheckoutEntry}
-          activeCheckoutOverdue={activeCheckoutOverdue}
-          activeCheckoutUserName={activeCheckoutUserName}
-          hasActiveAssignment={hasActiveAssignment}
-          canCheckoutNow={canCheckoutNow}
-          canReturnNow={canReturnNow}
-          canSeeActiveCheckoutDetails={canSeeActiveCheckoutDetails}
-          equipment={equipment}
-          isAdminUser={isAdminUser}
-          lastMovementAt={lastMovementAt}
-        />
+        )}
       </div>
     </div>
   )
-
 }
 
 export default EquipmentDetailsPage

@@ -49,16 +49,13 @@
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
 
-
-  --panel-soft: rgba(17, 24, 39, 0.03);
+--panel-soft: rgba(17, 24, 39, 0.03);
   --panel-strong: rgba(255, 255, 255, 0.74);
   --chip-bg: rgba(17, 24, 39, 0.05);
   --input-bg: rgba(255, 255, 255, 0.72);
   --thumb-bg: rgba(15, 23, 42, 0.04);
   --nav-title-text: #111827;
   --nav-subtitle-text: #6b7280;
-  --menu-link-icon-bg: rgba(15, 23, 42, 0.05);
-  --menu-link-icon-text: #1f2937;
   --interactive-surface: rgba(255, 255, 255, 0.72);
   --interactive-surface-strong: rgba(255, 255, 255, 0.86);
   --interactive-surface-hover: rgba(255, 255, 255, 0.94);
@@ -118,16 +115,13 @@
   --shadow-md: 0 4px 12px rgba(2, 6, 23, 0.45);
   --shadow-lg: 0 12px 32px rgba(2, 6, 23, 0.55);
 
-
-  --panel-soft: rgba(148, 163, 184, 0.08);
+--panel-soft: rgba(148, 163, 184, 0.08);
   --panel-strong: rgba(15, 23, 42, 0.72);
   --chip-bg: rgba(148, 163, 184, 0.12);
   --input-bg: rgba(24, 34, 49, 0.9);
   --thumb-bg: rgba(148, 163, 184, 0.08);
   --nav-title-text: #f3f5f8;
   --nav-subtitle-text: #9ba8ba;
-  --menu-link-icon-bg: rgba(148, 163, 184, 0.16);
-  --menu-link-icon-text: #e5edf6;
   --interactive-surface: rgba(24, 34, 49, 0.92);
   --interactive-surface-strong: rgba(29, 41, 58, 0.96);
   --interactive-surface-hover: rgba(35, 48, 67, 0.98);

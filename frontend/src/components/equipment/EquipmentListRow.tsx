@@ -1,64 +1,47 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
 import type { EquipmentListItem } from '../../types/equipment'
-import { formatDate, formatDateTime, getStatusBadgeClass, getStatusLabel } from '../../utils/presentation'
-import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
-import type { EquipmentDueState, EquipmentStatusMeta } from './EquipmentCard'
+import type { CheckoutWarning } from '../../utils/checkoutDeadlines'
+import { formatDate } from '../../utils/dates'
+import { getStatusBadgeClass, getStatusLabel } from '../../utils/labels'
+import { AssetCell } from '../shared/AssetCell'
+import type { EquipmentStatusMeta } from './EquipmentCard'
 
 interface EquipmentListRowProps {
   actions?: ReactNode
-  canSeeDueState: boolean
-  dueState: EquipmentDueState | null
   equipment: EquipmentListItem
+  isEditing?: boolean
   statusContext: EquipmentStatusMeta | null
+  warning: CheckoutWarning | null
 }
 
 export function EquipmentListRow({
   actions,
-  canSeeDueState,
-  dueState,
   equipment,
+  isEditing = false,
   statusContext,
+  warning,
 }: EquipmentListRowProps) {
   const { language, t } = useLanguage()
 
   return (
     <article
-      className={`data-list__row ${dueState?.isOverdue ? 'data-list__row--overdue' : ''}`}
+      className={`data-list__row ${
+        isEditing
+          ? 'data-list__row--editing'
+          : warning === 'overdue'
+            ? 'data-list__row--overdue'
+            : warning === 'dueSoon'
+              ? 'data-list__row--due-soon'
+              : ''
+      }`}
     >
-      <div className="data-list__cell data-list__cell--primary">
-        <div className="data-list__asset">
-          <div className="data-list__thumb">
-            <ProtectedAssetImage
-              imageUrl={equipment.imageUrl}
-              alt={equipment.name}
-              className="data-list__thumb-image"
-              placeholderClassName="data-list__thumb-placeholder"
-              placeholderText={t.common.noImage}
-            />
-          </div>
-
-          <div className="data-list__asset-copy">
-            <div className="data-list__title-row">
-              <Link to={`/equipment/${equipment.id}`} className="context-link">
-                <strong className="data-list__primary-text context-link__primary">
-                  {equipment.name}
-                </strong>
-              </Link>
-              {dueState?.alertLabel && (
-                <span className={dueState.alertClass ?? undefined}>
-                  {dueState.alertLabel}
-                </span>
-              )}
-            </div>
-            <span className="data-list__secondary-text">{equipment.category}</span>
-            <span className="data-list__tertiary-text">
-              {equipment.description || t.inventory.listDescriptionFallback}
-            </span>
-          </div>
-        </div>
-      </div>
+      <AssetCell
+        asset={equipment}
+        secondaryText={equipment.category}
+        tertiaryText={equipment.description || t.inventory.listDescriptionFallback}
+        warning={warning}
+      />
 
       <div className="data-list__cell data-list__cell--context">
         <span className="data-list__mobile-label">{t.inventory.assignee}</span>
@@ -66,12 +49,6 @@ export function EquipmentListRow({
           <div className="data-list__context-stack">
             <span className="data-list__context-label">{statusContext.label}</span>
             <strong className="data-list__context-name">{statusContext.value}</strong>
-            {canSeeDueState && equipment.activeCheckoutDueAt && (
-              <span className="data-list__context-value">
-                {dueState?.detailLabel}:{' '}
-                {formatDateTime(equipment.activeCheckoutDueAt, language)}
-              </span>
-            )}
           </div>
         ) : (
           <span className="data-list__context-placeholder">-</span>

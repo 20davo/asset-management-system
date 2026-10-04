@@ -1,62 +1,42 @@
 import { useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
 import type { CheckoutItem } from '../../types/checkout'
-import {
-  formatDateTime,
-  getStatusBadgeClass,
-  getStatusLabel,
-  isCheckoutDueSoon,
-  isCheckoutOverdue,
-} from '../../utils/presentation'
+import { getCheckoutWarning, WARNING_FILTERS } from '../../utils/checkoutDeadlines'
+import { matchesCheckoutSearch, sortCheckouts } from '../../utils/checkoutList'
+import { getStatusBadgeClass, getStatusLabel } from '../../utils/labels'
 import {
   getEnumSearchParam,
   getTextSearchParam,
   setMergedSearchParams,
   toggleSortSearchParams,
 } from '../../utils/searchParams'
-import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
+import { CheckoutCard } from './CheckoutCard'
+import { AssetCell } from '../shared/AssetCell'
+import { DateTimeValue } from '../shared/DateTimeValue'
+import { FilterPanel } from '../shared/FilterPanel'
+import { SortableHeading } from '../shared/SortableHeading'
+import { ViewSwitch } from '../shared/ViewSwitch'
+import { WarningFilterSelect } from '../shared/WarningFilterSelect'
 
 interface AssignedAssetsSectionProps {
   items: CheckoutItem[]
   emptyTitle: string
   emptyText: string
   searchPlaceholder: string
-  heroKicker: string
-  heroTitle: string
-  heroText: string
+  title?: string
   queryKeyPrefix: string
   enableWarningFilter?: boolean
 }
 
 type AssignedAssetSortField = 'asset' | 'serial' | 'status' | 'checkedOutAt' | 'dueAt'
 
-function getTimelineState(checkout: CheckoutItem) {
-  if (isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)) {
-    return {
-      alertClass: 'deadline-flag deadline-flag--danger',
-      alertLabel: 'overdue',
-    } as const
-  }
-
-  if (isCheckoutDueSoon(checkout.dueAt, checkout.returnedAt)) {
-    return {
-      alertClass: 'deadline-flag deadline-flag--warning',
-      alertLabel: 'dueSoon',
-    } as const
-  }
-
-  return null
-}
-
 export function AssignedAssetsSection({
   items,
   emptyTitle,
   emptyText,
   searchPlaceholder,
-  heroKicker,
-  heroTitle,
-  heroText,
+  title,
   queryKeyPrefix,
   enableWarningFilter = false,
 }: AssignedAssetsSectionProps) {
@@ -84,66 +64,20 @@ export function AssignedAssetsSection({
   const warningFilter = getEnumSearchParam(
     searchParams,
     `${queryKeyPrefix}-warning`,
-    ['all', 'none', 'dueSoon', 'overdue'] as const,
+    WARNING_FILTERS,
     'all',
   )
 
   const filteredItems = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
-
     const result = items.filter((checkout) => {
-      const warningState = getTimelineState(checkout)?.alertLabel ?? 'none'
-      if (normalizedQuery.length === 0) {
-        return enableWarningFilter ? warningFilter === 'all' || warningState === warningFilter : true
-      }
-
-      const matchesSearch = [
-        checkout.equipment.name,
-        checkout.equipment.category,
-        checkout.equipment.serialNumber,
-        checkout.note ?? '',
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery)
-
+      const warning = getCheckoutWarning(checkout.dueAt, checkout.returnedAt) ?? 'none'
       const matchesWarning =
-        !enableWarningFilter || warningFilter === 'all' || warningState === warningFilter
+        !enableWarningFilter || warningFilter === 'all' || warning === warningFilter
 
-      return matchesSearch && matchesWarning
+      return matchesWarning && matchesCheckoutSearch(checkout, searchQuery)
     })
 
-    result.sort((left, right) => {
-      const multiplier = sortDirection === 'asc' ? 1 : -1
-
-      switch (sortField) {
-        case 'asset':
-          return left.equipment.name.localeCompare(right.equipment.name, language) * multiplier
-        case 'serial':
-          return (
-            left.equipment.serialNumber.localeCompare(right.equipment.serialNumber, language, {
-              numeric: true,
-            }) * multiplier
-          )
-        case 'status':
-          return (
-            getStatusLabel(left.equipment.status, language).localeCompare(
-              getStatusLabel(right.equipment.status, language),
-              language,
-            ) * multiplier
-          )
-        case 'checkedOutAt':
-          return (
-            (new Date(left.checkedOutAt).getTime() - new Date(right.checkedOutAt).getTime()) *
-            multiplier
-          )
-        case 'dueAt':
-        default:
-          return (new Date(left.dueAt).getTime() - new Date(right.dueAt).getTime()) * multiplier
-      }
-    })
-
-    return result
+    return sortCheckouts(result, sortField, sortDirection, language)
   }, [enableWarningFilter, items, language, searchQuery, sortDirection, sortField, warningFilter])
 
   function resetFilters() {
@@ -157,67 +91,21 @@ export function AssignedAssetsSection({
   }
 
   function renderSortableHeading(field: AssignedAssetSortField, label: string) {
-    const isActive = sortField === field
-    const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
-    const sortStateLabel = !isActive
-      ? t.common.sortNotSorted
-      : sortDirection === 'asc'
-        ? t.common.sortAscending
-        : t.common.sortDescending
-
     return (
-      <button
-        type="button"
-        className="data-list__sort-button"
-        onClick={() =>
+      <SortableHeading
+        direction={sortDirection}
+        isActive={sortField === field}
+        label={label}
+        onSort={() =>
           toggleSortSearchParams(
             setSearchParams,
             `${queryKeyPrefix}-sort`,
             `${queryKeyPrefix}-dir`,
             field,
-            field === 'dueAt' ? 'asc' : field === 'checkedOutAt' ? 'desc' : 'asc',
+            field === 'checkedOutAt' ? 'desc' : 'asc',
           )
         }
-      >
-        <span>{label}</span>
-        <span className="data-list__sort-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span className="visually-hidden">{sortStateLabel}</span>
-      </button>
-    )
-  }
-
-  function renderViewSwitch() {
-    return (
-      <div className="view-switch" role="group" aria-label={t.common.view}>
-        <button
-          type="button"
-          className={`view-switch__button ${
-            assetView === 'cards' ? 'view-switch__button--active' : ''
-          }`}
-          onClick={() =>
-            setMergedSearchParams(setSearchParams, {
-              [`${queryKeyPrefix}-view`]: 'cards',
-            })
-          }
-        >
-          {t.common.cardsView}
-        </button>
-        <button
-          type="button"
-          className={`view-switch__button ${
-            assetView === 'list' ? 'view-switch__button--active' : ''
-          }`}
-          onClick={() =>
-            setMergedSearchParams(setSearchParams, {
-              [`${queryKeyPrefix}-view`]: null,
-            })
-          }
-        >
-          {t.common.listView}
-        </button>
-      </div>
+      />
     )
   }
 
@@ -232,67 +120,50 @@ export function AssignedAssetsSection({
 
   return (
     <section className="inventory-stack">
-      <div className="section-heading section-heading--toolbar">
-        <div>
-          <span className="section-heading__eyebrow">{heroKicker}</span>
-          <h2 className="section-heading__title">{heroTitle}</h2>
-        </div>
-        <div className="section-heading__aside">
-          <p className="section-heading__text">{heroText}</p>
-          {renderViewSwitch()}
-        </div>
-      </div>
-
-      <section className="section-card section-card--compact filter-panel">
-        <div className="filter-panel__grid filter-panel__grid--checkout">
-          <div className="form-field">
-            <label htmlFor={`${queryKeyPrefix}-assets-search`}>{t.common.search}</label>
-            <input
-              id={`${queryKeyPrefix}-assets-search`}
-              type="search"
-              value={searchQuery}
-              onChange={(event) =>
-                setMergedSearchParams(setSearchParams, {
-                  [`${queryKeyPrefix}-search`]: event.target.value.trim()
-                    ? event.target.value
-                    : null,
-                })
-              }
-              placeholder={searchPlaceholder}
-            />
+      {title && (
+        <div className="section-heading section-heading--toolbar">
+          <div>
+            <h2 className="section-heading__title">{title}</h2>
           </div>
-
-          {enableWarningFilter && (
-            <div className="form-field">
-              <label htmlFor={`${queryKeyPrefix}-assets-warning`}>{t.common.warningFilterLabel}</label>
-              <select
-                id={`${queryKeyPrefix}-assets-warning`}
-                value={warningFilter}
-                onChange={(event) =>
-                  setMergedSearchParams(setSearchParams, {
-                    [`${queryKeyPrefix}-warning`]:
-                      event.target.value === 'all' ? null : event.target.value,
-                  })
-                }
-              >
-                <option value="all">{t.common.allWarnings}</option>
-                <option value="none">{t.common.noWarning}</option>
-                <option value="dueSoon">{t.common.warningDueSoon}</option>
-                <option value="overdue">{t.common.warningOverdue}</option>
-              </select>
-            </div>
-          )}
         </div>
+      )}
 
-        <div className="filter-panel__footer">
-          <p className="filter-panel__summary">
-            {filteredItems.length} / {items.length}
-          </p>
-          <button type="button" className="button-secondary" onClick={resetFilters}>
-            {t.common.clearFilters}
-          </button>
-        </div>
-      </section>
+      <FilterPanel
+        filteredCount={filteredItems.length}
+        layout="checkout"
+        onReset={resetFilters}
+        onSearchChange={(value) =>
+          setMergedSearchParams(setSearchParams, {
+            [`${queryKeyPrefix}-search`]: value.trim() ? value : null,
+          })
+        }
+        searchId={`${queryKeyPrefix}-assets-search`}
+        searchPlaceholder={searchPlaceholder}
+        searchValue={searchQuery}
+        totalCount={items.length}
+        viewSwitch={
+          <ViewSwitch
+            value={assetView}
+            onChange={(view) =>
+              setMergedSearchParams(setSearchParams, {
+                [`${queryKeyPrefix}-view`]: view === 'cards' ? view : null,
+              })
+            }
+          />
+        }
+      >
+        {enableWarningFilter && (
+          <WarningFilterSelect
+            id={`${queryKeyPrefix}-assets-warning`}
+            value={warningFilter}
+            onChange={(value) =>
+              setMergedSearchParams(setSearchParams, {
+                [`${queryKeyPrefix}-warning`]: value === 'all' ? null : value,
+              })
+            }
+          />
+        )}
+      </FilterPanel>
 
       {filteredItems.length === 0 ? (
         <div className="empty-state">
@@ -309,173 +180,65 @@ export function AssignedAssetsSection({
             <span className="data-list__heading">{renderSortableHeading('dueAt', t.checkouts.dueAt)}</span>
           </div>
 
-          {filteredItems.map((checkout) => {
-            const timelineState = getTimelineState(checkout)
+          <div className="data-list__body">
+            {filteredItems.map((checkout) => {
+              const warning = getCheckoutWarning(checkout.dueAt, checkout.returnedAt)
 
-            return (
+              return (
                 <article
                   key={checkout.id}
                   className={`data-list__row ${
-                  timelineState?.alertLabel === 'overdue' ? 'data-list__row--overdue' : ''
-                }`}
-              >
-                <div className="data-list__cell data-list__cell--primary">
-                  <div className="data-list__asset">
-                    <div className="data-list__thumb">
-                      <ProtectedAssetImage
-                        imageUrl={checkout.equipment.imageUrl}
-                        alt={checkout.equipment.name}
-                        className="data-list__thumb-image"
-                        placeholderClassName="data-list__thumb-placeholder"
-                        placeholderText={t.common.noImage}
-                      />
-                    </div>
+                    warning === 'overdue' ? 'data-list__row--overdue' : ''
+                  }`}
+                >
+                  <AssetCell
+                    asset={checkout.equipment}
+                    secondaryText={checkout.equipment.category}
+                    tertiaryText={checkout.note}
+                    warning={warning}
+                  />
 
-                    <div className="data-list__asset-copy">
-                      <div className="data-list__title-row">
-                        <Link
-                          to={`/equipment/${checkout.equipment.id}`}
-                          className="context-link"
-                        >
-                          <strong className="data-list__primary-text context-link__primary">
-                            {checkout.equipment.name}
-                          </strong>
-                        </Link>
-                        {timelineState && (
-                          <span className={timelineState.alertClass}>
-                            {timelineState.alertLabel === 'overdue'
-                              ? t.checkouts.overdueBadge
-                              : t.checkouts.dueSoonBadge}
-                          </span>
-                        )}
-                      </div>
-                      <span className="data-list__secondary-text">
-                        {checkout.equipment.category}
-                      </span>
-                      <span className="data-list__tertiary-text">
-                        {checkout.note || t.checkouts.noNote}
-                      </span>
-                    </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">{t.inventory.serial}</span>
+                    <span className="data-list__value">{checkout.equipment.serialNumber}</span>
                   </div>
-                </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">{t.inventory.serial}</span>
-                  <span className="data-list__value">{checkout.equipment.serialNumber}</span>
-                </div>
-
-                <div className="data-list__cell">
+                  <div className="data-list__cell">
                     <span className="data-list__mobile-label">{t.common.status}</span>
                     <div className="data-list__status-stack">
                       <span className={getStatusBadgeClass(checkout.equipment.status)}>
                         {getStatusLabel(checkout.equipment.status, language)}
                       </span>
                     </div>
-                </div>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">{t.checkouts.checkedOutAt}</span>
-                  <span className="data-list__value">
-                    {formatDateTime(checkout.checkedOutAt, language)}
-                  </span>
-                </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">{t.checkouts.checkedOutAt}</span>
+                    <span className="data-list__value">
+                      <DateTimeValue value={checkout.checkedOutAt} />
+                    </span>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">{t.checkouts.dueAt}</span>
-                  <span className="data-list__value">
-                    {formatDateTime(checkout.dueAt, language)}
-                  </span>
-                </div>
-              </article>
-            )
-          })}
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">{t.checkouts.dueAt}</span>
+                    <span
+                      className={`data-list__value ${
+                        warning === 'overdue' ? 'data-list__value--danger' : ''
+                      }`}
+                    >
+                      <DateTimeValue value={checkout.dueAt} />
+                    </span>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
         </div>
       ) : (
         <div className="equipment-list">
-          {filteredItems.map((checkout) => {
-            const timelineState = getTimelineState(checkout)
-
-            return (
-                <article
-                  key={checkout.id}
-                  className={`equipment-card ${
-                    timelineState?.alertLabel === 'overdue' ? 'equipment-card--overdue' : ''
-                  }`}
-              >
-                <div className="equipment-card__layout equipment-card__layout--media-first">
-                  <div className="equipment-card__media">
-                    <ProtectedAssetImage
-                      imageUrl={checkout.equipment.imageUrl}
-                      alt={checkout.equipment.name}
-                      className="equipment-card__image"
-                      placeholderClassName="equipment-card__image-placeholder"
-                      placeholderText={t.common.noImage}
-                    />
-                  </div>
-
-                    <div className="equipment-card__main">
-                      <div className="equipment-card__header">
-                        <div className="equipment-card__title-group">
-                          <div className="equipment-card__title-row">
-                            <Link
-                              to={`/equipment/${checkout.equipment.id}`}
-                              className="context-link"
-                            >
-                              <h3 className="equipment-card__title-small context-link__primary">
-                                {checkout.equipment.name}
-                              </h3>
-                            </Link>
-                            {timelineState && (
-                              <span className={timelineState.alertClass}>
-                                {timelineState.alertLabel === 'overdue'
-                                  ? t.checkouts.overdueBadge
-                                  : t.checkouts.dueSoonBadge}
-                              </span>
-                            )}
-                          </div>
-                          <span className="equipment-card__serial">
-                            SN {checkout.equipment.serialNumber}
-                          </span>
-                          <div className="equipment-card__signal-row">
-                            <span className="equipment-category-chip">
-                              {checkout.equipment.category}
-                            </span>
-                          </div>
-                        </div>
-                        <span className={getStatusBadgeClass(checkout.equipment.status)}>
-                          {getStatusLabel(checkout.equipment.status, language)}
-                        </span>
-                      </div>
-
-                      <div className="equipment-meta">
-                      <div className="equipment-meta__item">
-                        <span className="equipment-meta__label">
-                          {t.checkouts.checkedOutAt}
-                        </span>
-                        <span className="equipment-meta__value">
-                          {formatDateTime(checkout.checkedOutAt, language)}
-                        </span>
-                      </div>
-
-                      <div className="equipment-meta__item">
-                        <span className="equipment-meta__label">{t.checkouts.dueAt}</span>
-                        <span className="equipment-meta__value">
-                          {formatDateTime(checkout.dueAt, language)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {checkout.note && (
-                      <div className="equipment-description">
-                        <span className="equipment-description__label">{t.checkouts.note}</span>
-                        <p className="equipment-description__text">{checkout.note}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </article>
-            )
-          })}
+          {filteredItems.map((checkout) => (
+            <CheckoutCard key={checkout.id} checkout={checkout} />
+          ))}
         </div>
       )}
     </section>

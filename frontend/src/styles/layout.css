@@ -22,10 +22,8 @@
   gap: var(--space-5);
 }
 
-.page-hero,
 .auth-page,
 .section-card,
-.equipment-card,
 .empty-state,
 .loading-state {
   background: var(--surface-solid);
@@ -39,7 +37,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-5);
-  padding: var(--space-5);
+  padding: var(--space-5) 0;
 }
 
 .page-hero__content {
@@ -47,21 +45,6 @@
   gap: var(--space-2);
   align-content: start;
   min-width: 0;
-}
-
-.page-kicker,
-.section-heading__eyebrow {
-  display: inline-flex;
-  width: fit-content;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--chip-bg);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .page-title {
@@ -79,56 +62,21 @@
   color: var(--text-secondary);
 }
 
-.page-hero__panel {
-  display: grid;
-  align-content: center;
-  justify-items: end;
-  gap: var(--space-1);
-  min-width: 0;
-  text-align: right;
-}
-
-.page-hero__panel-label {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.page-hero__panel-value {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.page-hero__panel-text {
+.page-hero__meta {
+  font-size: var(--text-sm);
   color: var(--text-secondary);
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
-.page-hero__panel-meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
-  text-align: left;
-}
-
-.page-hero__panel-meta-item {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.app button.page-hero__action {
+  justify-self: start;
+  gap: var(--space-2);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
+  margin-bottom: calc(var(--space-6) + var(--space-1));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface-solid);
@@ -162,11 +110,6 @@
   font-weight: var(--weight-bold);
 }
 
-.stat-card__note {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
 @media (max-width: 1100px) {
   .stat-card {
     border-left: 0;
@@ -178,8 +121,7 @@
   }
 }
 
-.section-card,
-.equipment-card {
+.section-card {
   padding: var(--space-5);
 }
 
@@ -203,12 +145,6 @@
   margin-bottom: 20px;
 }
 
-.section-heading__aside {
-  display: grid;
-  justify-items: end;
-  gap: 12px;
-}
-
 .section-heading__title {
   margin-top: 10px;
   font-size: var(--text-lg);
@@ -221,41 +157,57 @@
   line-height: 1.65;
 }
 
-.view-switch {
+.segmented-control {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
   padding: 3px;
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background: transparent;
   border: 1px solid var(--border);
 }
 
-.app button.view-switch__button {
+.segmented-control--compact {
+  gap: 2px;
+  padding: 2px;
+}
+
+.app button.segmented-control__button {
   min-height: 30px;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--text-sm);
-  box-shadow: none;
+  font-weight: var(--weight-medium);
+  box-shadow: inset 0 0 0 1px transparent;
 }
 
-.app button.view-switch__button:hover {
-  background: var(--surface-hover);
-  box-shadow: none;
+.app .segmented-control--compact button.segmented-control__button {
+  min-height: 24px;
+  padding: 2px var(--space-2);
 }
 
-.app button.view-switch__button--active,
-.app button.view-switch__button--active:hover {
-  background: var(--primary);
-  color: var(--primary-text);
-  box-shadow: none;
+.segmented-control__button svg {
+  width: 16px;
+  height: 16px;
 }
 
-.inventory-stack,
-.details-main,
-.details-side {
+.app button.segmented-control__button:hover {
+  background: transparent;
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px transparent;
+}
+
+.app button.segmented-control__button--active,
+.app button.segmented-control__button--active:hover {
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--text-primary);
+}
+
+.inventory-stack {
   display: grid;
   gap: var(--space-5);
 }

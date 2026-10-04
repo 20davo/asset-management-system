@@ -3,11 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { act } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { LanguageProvider } from '../../context/LanguageContext'
-import {
-  emptyEquipmentForm,
-  EquipmentForm,
-  type EquipmentFormState,
-} from './EquipmentForm'
+import { emptyEquipmentForm, type EquipmentFormState } from '../../hooks/useEquipmentForm'
+import { EquipmentForm } from './EquipmentForm'
 
 // A one pixel GIF, so the preview renders without a network request.
 const PREVIEW_DATA_URL =

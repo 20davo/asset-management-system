@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   createEquipment,
@@ -10,12 +10,9 @@ import {
 } from '../api/equipmentApi'
 import { useAuth } from '../context/AuthContext'
 import type { EquipmentListItem } from '../types/equipment'
-import {
-  formatDate,
-  getStatusLabel,
-  isCheckoutDueSoon,
-  isCheckoutOverdue,
-} from '../utils/presentation'
+import { getCheckoutWarning, WARNING_FILTERS } from '../utils/checkoutDeadlines'
+import { formatDate } from '../utils/dates'
+import { getStatusLabel } from '../utils/labels'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { getApiMessage } from '../utils/apiMessages'
 import {
@@ -25,43 +22,20 @@ import {
   toggleSortSearchParams,
 } from '../utils/searchParams'
 import { useLanguage } from '../context/LanguageContext'
-import {
-  emptyEquipmentForm,
-  EquipmentForm,
-  type EquipmentFormState,
-} from '../components/equipment/EquipmentForm'
-import {
-  EquipmentCard,
-  type EquipmentDueState,
-} from '../components/equipment/EquipmentCard'
+import { EquipmentForm } from '../components/equipment/EquipmentForm'
+import { EquipmentCard } from '../components/equipment/EquipmentCard'
 import { EquipmentListRow } from '../components/equipment/EquipmentListRow'
-import { EquipmentFilters } from '../components/equipment/EquipmentFilters'
 import { EquipmentActions } from '../components/equipment/EquipmentActions'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
+import { FilterPanel } from '../components/shared/FilterPanel'
+import { SortableHeading } from '../components/shared/SortableHeading'
+import { ViewSwitch } from '../components/shared/ViewSwitch'
+import { WarningFilterSelect } from '../components/shared/WarningFilterSelect'
+import { emptyEquipmentForm, getUniqueCategories, useEquipmentForm } from '../hooks/useEquipmentForm'
 
-const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 const CATEGORY_DATALIST_ID = 'equipment-category-suggestions'
 
-type WarningFilter = 'all' | 'none' | 'dueSoon' | 'overdue'
 type EquipmentSortField = 'asset' | 'assignee' | 'serial' | 'status' | 'recorded'
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result)
-        return
-      }
-
-      reject(new Error('Invalid file result.'))
-    }
-
-    reader.onerror = () => reject(reader.error ?? new Error('File read failed.'))
-    reader.readAsDataURL(file)
-  })
-}
 
 function EquipmentListPage() {
   const { user } = useAuth()
@@ -74,15 +48,30 @@ function EquipmentListPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const [createForm, setCreateForm] = useState<EquipmentFormState>(emptyEquipmentForm)
+  const categories = useMemo(
+    () => getUniqueCategories(equipments.map((equipment) => equipment.category), language),
+    [equipments, language],
+  )
+  const createForm = useEquipmentForm({
+    categories,
+    onClearMessages: clearMessages,
+    onError: setErrorMessage,
+  })
   const [editingEquipmentId, setEditingEquipmentId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<EquipmentFormState>(emptyEquipmentForm)
+  const editForm = useEquipmentForm({
+    categories,
+    onClearMessages: clearMessages,
+    onError: setErrorMessage,
+  })
 
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [deletingEquipmentId, setDeletingEquipmentId] = useState<number | null>(null)
   const [statusChangingEquipmentId, setStatusChangingEquipmentId] = useState<number | null>(null)
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false)
+  const addButtonRef = useRef<HTMLButtonElement | null>(null)
+  const createPanelRef = useRef<HTMLElement | null>(null)
+  const restoreAddFocus = useRef(false)
   const inventoryView = getEnumSearchParam(
     searchParams,
     'view',
@@ -95,7 +84,7 @@ function EquipmentListPage() {
   const warningFilter = getEnumSearchParam(
     searchParams,
     'warning',
-    ['all', 'none', 'dueSoon', 'overdue'] as const,
+    WARNING_FILTERS,
     'all',
   )
   const sortField = getEnumSearchParam(
@@ -122,64 +111,41 @@ function EquipmentListPage() {
     void loadEquipments()
   }, [loadEquipments])
 
+  // The add button hides while the form is open, so focus moves into the form and back.
+  useEffect(() => {
+    if (isCreatePanelOpen) {
+      createPanelRef.current?.querySelector('input')?.focus({ preventScroll: true })
+    } else if (restoreAddFocus.current) {
+      restoreAddFocus.current = false
+      addButtonRef.current?.focus()
+    }
+  }, [isCreatePanelOpen])
+
   function clearMessages() {
     setErrorMessage('')
     setSuccessMessage('')
   }
 
-  function normalizeCategoryValue(rawCategory: string) {
-    const trimmedCategory = rawCategory.trim()
-
-    if (!trimmedCategory) {
-      return ''
-    }
-
-    const existingCategory = categories.find(
-      (category) =>
-        category.trim().toLocaleLowerCase(language) ===
-        trimmedCategory.toLocaleLowerCase(language),
-    )
-
-    return existingCategory ?? trimmedCategory
-  }
-
-  function updateCreateCategory(rawCategory: string) {
-    setCreateForm((prev) => ({
-      ...prev,
-      category: rawCategory,
-    }))
-  }
-
-  function normalizeCreateCategory() {
-    setCreateForm((prev) => ({
-      ...prev,
-      category: normalizeCategoryValue(prev.category),
-    }))
-  }
-
-  function cancelCreate() {
-    setCreateForm(emptyEquipmentForm)
+  function closeCreate() {
+    createForm.setForm(emptyEquipmentForm)
     setIsCreatePanelOpen(false)
   }
 
-  function updateEditCategory(rawCategory: string) {
-    setEditForm((prev) => ({
-      ...prev,
-      category: rawCategory,
-    }))
+  function cancelCreate() {
+    restoreAddFocus.current = true
+    closeCreate()
   }
 
-  function normalizeEditCategory() {
-    setEditForm((prev) => ({
-      ...prev,
-      category: normalizeCategoryValue(prev.category),
-    }))
+  function openCreate() {
+    cancelEdit()
+    setIsCreatePanelOpen(true)
   }
 
   function startEdit(equipment: EquipmentListItem) {
     clearMessages()
+    closeCreate()
     setEditingEquipmentId(equipment.id)
-    setEditForm({
+    editForm.setForm({
       name: equipment.name,
       category: equipment.category,
       description: equipment.description ?? '',
@@ -192,77 +158,7 @@ function EquipmentListPage() {
 
   function cancelEdit() {
     setEditingEquipmentId(null)
-    setEditForm(emptyEquipmentForm)
-  }
-
-  async function handleImageChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-    target: 'create' | 'edit',
-  ) {
-    const file = event.target.files?.[0]
-
-    if (!file) {
-      return
-    }
-
-    clearMessages()
-
-    if (!file.type.startsWith('image/')) {
-      setErrorMessage(t.inventory.imageInvalidType)
-      event.target.value = ''
-      return
-    }
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setErrorMessage(t.inventory.imageTooLarge)
-      event.target.value = ''
-      return
-    }
-
-    try {
-      const imageUrl = await readFileAsDataUrl(file)
-
-      if (target === 'create') {
-        setCreateForm((prev) => ({
-          ...prev,
-          image: file,
-          imagePreviewUrl: imageUrl,
-          removeImage: false,
-        }))
-      } else {
-        setEditForm((prev) => ({
-          ...prev,
-          image: file,
-          imagePreviewUrl: imageUrl,
-          removeImage: false,
-        }))
-      }
-    } catch {
-      setErrorMessage(t.inventory.imageInvalidType)
-    } finally {
-      event.target.value = ''
-    }
-  }
-
-  function removeImage(target: 'create' | 'edit') {
-    clearMessages()
-
-    if (target === 'create') {
-      setCreateForm((prev) => ({
-        ...prev,
-        image: null,
-        imagePreviewUrl: '',
-        removeImage: false,
-      }))
-      return
-    }
-
-    setEditForm((prev) => ({
-      ...prev,
-      image: null,
-      imagePreviewUrl: '',
-      removeImage: true,
-    }))
+    editForm.setForm(emptyEquipmentForm)
   }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -271,17 +167,18 @@ function EquipmentListPage() {
     setIsCreating(true)
 
     try {
+      const payload = createForm.getPayload()
       const response = await createEquipment({
-        name: createForm.name.trim(),
-        category: normalizeCategoryValue(createForm.category),
-        description: createForm.description.trim() || undefined,
-        image: createForm.image,
-        serialNumber: createForm.serialNumber.trim(),
+        name: payload.name,
+        category: payload.category,
+        description: payload.description,
+        image: payload.image,
+        serialNumber: payload.serialNumber,
       })
 
       setSuccessMessage(getApiMessage(response.code, language) ?? t.inventory.createSuccess)
-      setCreateForm(emptyEquipmentForm)
-      setIsCreatePanelOpen(false)
+      restoreAddFocus.current = true
+      closeCreate()
       await loadEquipments()
     } catch (error: unknown) {
       setErrorMessage(getApiErrorMessage(error, t.inventory.createError, language))
@@ -299,18 +196,11 @@ function EquipmentListPage() {
     setIsUpdating(true)
 
     try {
-      const response = await updateEquipment(equipmentId, {
-        name: editForm.name.trim(),
-        category: normalizeCategoryValue(editForm.category),
-        description: editForm.description.trim() || undefined,
-        image: editForm.image,
-        removeImage: editForm.removeImage,
-        serialNumber: editForm.serialNumber.trim(),
-      })
+      const response = await updateEquipment(equipmentId, editForm.getPayload())
 
       setSuccessMessage(getApiMessage(response.code, language) ?? t.inventory.updateSuccess)
       setEditingEquipmentId(null)
-      setEditForm(emptyEquipmentForm)
+      editForm.setForm(emptyEquipmentForm)
       await loadEquipments()
     } catch (error: unknown) {
       setErrorMessage(getApiErrorMessage(error, t.inventory.updateError, language))
@@ -384,39 +274,16 @@ function EquipmentListPage() {
   const maintenanceCount = equipments.filter(
     (equipment) => equipment.status === 'Maintenance',
   ).length
-  const newestEquipment = [...equipments].sort(
-    (left, right) =>
-      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-  )[0]
-  const categories = useMemo(
-    () =>
-      Array.from(
-        equipments.reduce((accumulator, equipment) => {
-          const trimmedCategory = equipment.category.trim()
-
-          if (!trimmedCategory) {
-            return accumulator
-          }
-
-          const normalizedKey = trimmedCategory.toLocaleLowerCase(language)
-
-          if (!accumulator.has(normalizedKey)) {
-            accumulator.set(normalizedKey, trimmedCategory)
-          }
-
-          return accumulator
-        }, new Map<string, string>()).values(),
-      ).sort((left, right) => left.localeCompare(right, language)),
-    [equipments, language],
+  const newestEquipment = equipments.reduce<EquipmentListItem | undefined>(
+    (newest, equipment) =>
+      !newest || new Date(equipment.createdAt) > new Date(newest.createdAt) ? equipment : newest,
+    undefined,
   )
   const filteredEquipments = (() => {
     const normalizedQuery = searchQuery.trim().toLowerCase()
 
     const result = equipments.filter((equipment) => {
-      const canSeeDueState = canSeeCheckoutDetails(equipment)
-      const warningState = canSeeDueState
-        ? getWarningState(equipment.activeCheckoutDueAt)
-        : 'none'
+      const warning = getVisibleWarning(equipment) ?? 'none'
       const matchesSearch =
         normalizedQuery.length === 0
           ? true
@@ -439,7 +306,7 @@ function EquipmentListPage() {
       const matchesWarning =
         statusFilter !== 'CheckedOut' || warningFilter === 'all'
           ? true
-          : warningState === warningFilter
+          : warning === warningFilter
 
       return matchesSearch && matchesStatus && matchesCategory && matchesWarning
     })
@@ -451,7 +318,17 @@ function EquipmentListPage() {
         case 'assignee': {
           const leftValue = getSortAssigneeValue(left)
           const rightValue = getSortAssigneeValue(right)
-          return leftValue.localeCompare(rightValue, language) * multiplier
+
+          // Rows without a person stay at the end in both directions.
+          if (!leftValue || !rightValue) {
+            return Number(!leftValue) - Number(!rightValue)
+          }
+
+          return (
+            leftValue.localeCompare(rightValue, language) * multiplier ||
+            compareVisibleDueDates(left, right) ||
+            left.name.localeCompare(right.name, language)
+          )
         }
         case 'serial':
           return (
@@ -492,15 +369,10 @@ function EquipmentListPage() {
   }
 
   function getStatusContext(equipment: EquipmentListItem) {
-    const isCurrentUserAssignee =
-      !!user?.name &&
-      equipment.activeCheckoutUserName?.trim().toLocaleLowerCase(language) ===
-        user.name.trim().toLocaleLowerCase(language)
-
     if (equipment.status === 'CheckedOut') {
       return {
         label: t.inventory.checkedOutBy,
-        value: isCurrentUserAssignee
+        value: isCurrentUserName(equipment.activeCheckoutUserName)
           ? t.common.me
           : equipment.activeCheckoutUserName || t.inventory.actorUnknown,
       }
@@ -521,106 +393,59 @@ function EquipmentListPage() {
     return context?.value ?? ''
   }
 
+  function compareVisibleDueDates(left: EquipmentListItem, right: EquipmentListItem) {
+    const leftDue = canSeeCheckoutDetails(left) ? left.activeCheckoutDueAt : null
+    const rightDue = canSeeCheckoutDetails(right) ? right.activeCheckoutDueAt : null
+
+    if (!leftDue || !rightDue) {
+      return Number(!leftDue) - Number(!rightDue)
+    }
+
+    return new Date(leftDue).getTime() - new Date(rightDue).getTime()
+  }
+
   function canSeeCheckoutDetails(equipment: EquipmentListItem) {
     if (isAdmin) {
       return true
     }
 
-    if (!user?.name || equipment.status !== 'CheckedOut') {
-      return false
-    }
+    return equipment.status === 'CheckedOut' && isCurrentUserName(equipment.activeCheckoutUserName)
+  }
 
+  // The list API sends only the name of the holder, not the user id.
+  function isCurrentUserName(name: string | null) {
     return (
-      equipment.activeCheckoutUserName?.trim().toLocaleLowerCase(language) ===
-      user.name.trim().toLocaleLowerCase(language)
+      !!user?.name &&
+      name?.trim().toLocaleLowerCase(language) === user.name.trim().toLocaleLowerCase(language)
     )
   }
 
-  function getDueState(dueAt: string | null): EquipmentDueState | null {
-    if (!dueAt) {
-      return null
-    }
-
-    if (isCheckoutOverdue(dueAt, null)) {
-      return {
-        alertClass: 'deadline-flag deadline-flag--danger',
-        alertLabel: t.checkouts.overdueBadge,
-        detailLabel: t.details.overduePrefix,
-        isOverdue: true,
-      }
-    }
-
-    if (isCheckoutDueSoon(dueAt, null)) {
-      return {
-        alertClass: 'deadline-flag deadline-flag--warning',
-        alertLabel: t.checkouts.dueSoonBadge,
-        detailLabel: t.details.dueSoonPrefix,
-        isOverdue: false,
-      }
-    }
-
-    return {
-      alertClass: null,
-      alertLabel: null,
-      detailLabel: t.details.deadlinePrefix,
-      isOverdue: false,
-    }
-  }
-
-  function getWarningState(dueAt: string | null): Exclude<WarningFilter, 'all'> {
-    if (!dueAt) {
-      return 'none'
-    }
-
-    if (isCheckoutOverdue(dueAt, null)) {
-      return 'overdue'
-    }
-
-    if (isCheckoutDueSoon(dueAt, null)) {
-      return 'dueSoon'
-    }
-
-    return 'none'
+  function getVisibleWarning(equipment: EquipmentListItem) {
+    return canSeeCheckoutDetails(equipment)
+      ? getCheckoutWarning(equipment.activeCheckoutDueAt, null)
+      : null
   }
 
   function renderSortableHeading(field: EquipmentSortField, label: string) {
-    const isActive = sortField === field
-    const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
-    const sortStateLabel = !isActive
-      ? t.common.sortNotSorted
-      : sortDirection === 'asc'
-        ? t.common.sortAscending
-        : t.common.sortDescending
-
     return (
-      <button
-        type="button"
-        className="data-list__sort-button"
-        onClick={() => toggleSortSearchParams(setSearchParams, 'sort', 'dir', field)}
-      >
-        <span>{label}</span>
-        <span className="data-list__sort-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span className="visually-hidden">{sortStateLabel}</span>
-      </button>
+      <SortableHeading
+        direction={sortDirection}
+        isActive={sortField === field}
+        label={label}
+        onSort={() => toggleSortSearchParams(setSearchParams, 'sort', 'dir', field)}
+      />
     )
   }
 
-  function renderEquipmentActions(
-    equipment: EquipmentListItem,
-    options?: { compact?: boolean; shortLabels?: boolean },
-  ) {
+  function renderEquipmentActions(equipment: EquipmentListItem) {
     return (
       <EquipmentActions
         deletingEquipmentId={deletingEquipmentId}
         equipment={equipment}
-        isAdmin={isAdmin}
         onDelete={handleDelete}
         onEdit={startEdit}
         onMarkAvailable={handleMarkAvailable}
         onMarkMaintenance={handleMarkMaintenance}
-        options={options}
         statusChangingEquipmentId={statusChangingEquipmentId}
       />
     )
@@ -629,31 +454,27 @@ function EquipmentListPage() {
   function renderEquipmentCard(equipment: EquipmentListItem) {
     const statusContext = getStatusContext(equipment)
     const canSeeDueState = canSeeCheckoutDetails(equipment)
-    const dueState = canSeeDueState ? getDueState(equipment.activeCheckoutDueAt) : null
+    const warning = getVisibleWarning(equipment)
 
     if (editingEquipmentId === equipment.id) {
       return (
-        <article key={equipment.id} className="equipment-card equipment-card--editing">
+        <article key={equipment.id} className="section-card list-edit-panel">
           <EquipmentForm
             categoryDatalistId={CATEGORY_DATALIST_ID}
-            form={editForm}
+            form={editForm.form}
             idPrefix={`edit-${equipment.id}`}
             isSubmitting={isUpdating}
             mediaFallbackName={equipment.name}
             onCancel={cancelEdit}
-            onCategoryBlur={normalizeEditCategory}
-            onCategoryChange={updateEditCategory}
-            onImageChange={(event) => handleImageChange(event, 'edit')}
-            onRemoveImage={() => removeImage('edit')}
+            onCategoryBlur={editForm.normalizeCategory}
+            onCategoryChange={editForm.updateCategory}
+            onImageChange={editForm.handleImageChange}
+            onRemoveImage={editForm.removeImage}
             onSubmit={(event) => handleEditSubmit(event, equipment.id)}
-            setForm={setEditForm}
+            setForm={editForm.setForm}
             submitLabel={t.inventory.saveChanges}
             submittingLabel={t.inventory.saving}
-            titleBlock={{
-              kicker: t.inventory.editingKicker,
-              title: t.inventory.editingTitle,
-              text: t.inventory.editingText,
-            }}
+            title={t.inventory.editingTitle}
           />
         </article>
       )
@@ -662,11 +483,11 @@ function EquipmentListPage() {
     return (
       <EquipmentCard
         key={equipment.id}
-        actions={isAdmin ? renderEquipmentActions(equipment, { shortLabels: true }) : null}
+        actions={isAdmin ? renderEquipmentActions(equipment) : null}
         canSeeDueState={canSeeDueState}
-        dueState={dueState}
         equipment={equipment}
         statusContext={statusContext}
+        warning={warning}
       />
     )
   }
@@ -683,45 +504,25 @@ function EquipmentListPage() {
     <div className="page-shell">
       <section className="page-hero">
         <div className="page-hero__content">
-          <span className="page-kicker">{t.inventory.heroKicker}</span>
           <h1 className="page-title">{t.inventory.heroTitle}</h1>
-          <p className="page-subtitle">{t.inventory.heroText}</p>
-        </div>
-
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.inventory.signal}</span>
-          <strong className="page-hero__panel-value">
-            {equipments.length} {language === 'en' ? 'assets' : 'eszköz'}
-          </strong>
-          <p className="page-hero__panel-text">
+          <p className="page-hero__meta">
             {newestEquipment
               ? `${t.inventory.latestRecorded}: ${newestEquipment.name} ${formatDate(newestEquipment.createdAt, language)}`
               : t.inventory.noRecorded}
           </p>
         </div>
-      </section>
 
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span className="stat-card__label">{t.inventory.total}</span>
-          <strong className="stat-card__value">{equipments.length}</strong>
-          <span className="stat-card__note">{t.inventory.totalNote}</span>
-        </article>
-        <article className="stat-card">
-          <span className="stat-card__label">{t.inventory.available}</span>
-          <strong className="stat-card__value">{availableCount}</strong>
-          <span className="stat-card__note">{t.inventory.availableNote}</span>
-        </article>
-        <article className="stat-card">
-          <span className="stat-card__label">{t.inventory.checkedOut}</span>
-          <strong className="stat-card__value">{checkedOutCount}</strong>
-          <span className="stat-card__note">{t.inventory.checkedOutNote}</span>
-        </article>
-        <article className="stat-card">
-          <span className="stat-card__label">{t.inventory.maintenance}</span>
-          <strong className="stat-card__value">{maintenanceCount}</strong>
-          <span className="stat-card__note">{t.inventory.maintenanceNote}</span>
-        </article>
+        {isAdmin && !isCreatePanelOpen && (
+          <button
+            ref={addButtonRef}
+            type="button"
+            className="page-hero__action"
+            onClick={openCreate}
+          >
+            <span aria-hidden="true">+</span>
+            {t.inventory.addAsset}
+          </button>
+        )}
       </section>
 
       {errorMessage && <FeedbackMessage type="error" message={errorMessage} />}
@@ -733,181 +534,181 @@ function EquipmentListPage() {
         ))}
       </datalist>
 
-      {isAdmin && (
-        <section className="section-card section-card--compact admin-panel">
-          <div className="admin-panel__header">
-            <div className="admin-panel__heading">
-              <div className="admin-panel__heading-top">
-                <span className="section-heading__eyebrow">{t.inventory.adminKicker}</span>
-                <p className="section-heading__text">{t.inventory.adminText}</p>
-              </div>
-              {isCreatePanelOpen && (
-                <h2 className="section-heading__title">{t.inventory.adminTitle}</h2>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="admin-panel__toggle"
-              onClick={() => setIsCreatePanelOpen((prev) => !prev)}
-              aria-expanded={isCreatePanelOpen}
-            >
-              <span className="admin-panel__toggle-icon">
-                {isCreatePanelOpen ? '-' : '+'}
-              </span>
-              <span>{t.inventory.adminTitle}</span>
-            </button>
-          </div>
-
-          {isCreatePanelOpen && (
-            <EquipmentForm
-              categoryDatalistId={CATEGORY_DATALIST_ID}
-              form={createForm}
-              idPrefix="create"
-              isSubmitting={isCreating}
-              mediaFallbackName={t.inventory.name}
-              onCancel={cancelCreate}
-              onCategoryBlur={normalizeCreateCategory}
-              onCategoryChange={updateCreateCategory}
-              onImageChange={(event) => handleImageChange(event, 'create')}
-              onRemoveImage={() => removeImage('create')}
-              onSubmit={handleCreateSubmit}
-              setForm={setCreateForm}
-              submitLabel={t.inventory.saveItem}
-              submittingLabel={t.inventory.saving}
-            />
-          )}
+      {isAdmin && isCreatePanelOpen && (
+        <section
+          ref={createPanelRef}
+          className="section-card admin-panel"
+          aria-labelledby="create-form-title"
+        >
+          <EquipmentForm
+            categoryDatalistId={CATEGORY_DATALIST_ID}
+            form={createForm.form}
+            idPrefix="create"
+            isSubmitting={isCreating}
+            mediaFallbackName={t.inventory.name}
+            onCancel={cancelCreate}
+            onCategoryBlur={createForm.normalizeCategory}
+            onCategoryChange={createForm.updateCategory}
+            onImageChange={createForm.handleImageChange}
+            onRemoveImage={createForm.removeImage}
+            onSubmit={handleCreateSubmit}
+            setForm={createForm.setForm}
+            submitLabel={t.inventory.saveItem}
+            submittingLabel={t.inventory.saving}
+            title={t.inventory.adminTitle}
+          />
         </section>
       )}
 
+      <section className="stats-grid">
+        <article className="stat-card">
+          <span className="stat-card__label">{t.inventory.total}</span>
+          <strong className="stat-card__value">{equipments.length}</strong>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">{t.inventory.available}</span>
+          <strong className="stat-card__value">{availableCount}</strong>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">{t.inventory.checkedOut}</span>
+          <strong className="stat-card__value">{checkedOutCount}</strong>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">{t.inventory.maintenance}</span>
+          <strong className="stat-card__value">{maintenanceCount}</strong>
+        </article>
+      </section>
+
       <section className="inventory-stack">
-          <div className="section-heading section-heading--toolbar">
-            <div>
-              <span className="section-heading__eyebrow">{t.inventory.liveKicker}</span>
-              <h2 className="section-heading__title">{t.inventory.liveTitle}</h2>
-            </div>
-            <div className="section-heading__aside">
-              <p className="section-heading__text">{t.inventory.liveText}</p>
-              <div className="view-switch" role="group" aria-label={t.common.view}>
-                <button
-                  type="button"
-                  className={`view-switch__button ${
-                    inventoryView === 'cards' ? 'view-switch__button--active' : ''
-                  }`}
-                  onClick={() =>
-                    setMergedSearchParams(setSearchParams, {
-                      view: 'cards',
-                    })
-                  }
-                >
-                  {t.common.cardsView}
-                </button>
-                <button
-                  type="button"
-                  className={`view-switch__button ${
-                    inventoryView === 'list' ? 'view-switch__button--active' : ''
-                  }`}
-                  onClick={() =>
-                    setMergedSearchParams(setSearchParams, {
-                      view: null,
-                    })
-                  }
-                >
-                  {t.common.listView}
-                </button>
-              </div>
-            </div>
+        <FilterPanel
+          filteredCount={filteredEquipments.length}
+          layout="inventory"
+          onReset={resetFilters}
+          onSearchChange={(value) =>
+            setMergedSearchParams(setSearchParams, { search: value.trim() ? value : null })
+          }
+          searchId="inventory-search"
+          searchPlaceholder={t.inventory.searchPlaceholder}
+          searchValue={searchQuery}
+          totalCount={equipments.length}
+          viewSwitch={
+            <ViewSwitch
+              value={inventoryView}
+              onChange={(view) =>
+                setMergedSearchParams(setSearchParams, { view: view === 'cards' ? view : null })
+              }
+            />
+          }
+        >
+          <div className="form-field">
+            <label className="visually-hidden" htmlFor="inventory-status-filter">
+              {t.inventory.statusFilterLabel}
+            </label>
+            <select
+              id="inventory-status-filter"
+              value={statusFilter}
+              onChange={(event) =>
+                setMergedSearchParams(setSearchParams, {
+                  status: event.target.value === 'all' ? null : event.target.value,
+                  warning: event.target.value === 'CheckedOut' ? searchParams.get('warning') : null,
+                })
+              }
+            >
+              <option value="all">{t.inventory.allStatuses}</option>
+              <option value="Available">{t.inventory.available}</option>
+              <option value="CheckedOut">{t.inventory.checkedOut}</option>
+              <option value="Maintenance">{t.inventory.maintenance}</option>
+            </select>
           </div>
 
-          <EquipmentFilters
-            categories={categories}
-            categoryFilter={categoryFilter}
-            equipmentCount={equipments.length}
-            filteredCount={filteredEquipments.length}
-            onCategoryChange={(value) =>
-              setMergedSearchParams(setSearchParams, {
-                category: value === 'all' ? null : value,
-              })
-            }
-            onReset={resetFilters}
-            onSearchChange={(value) =>
-              setMergedSearchParams(setSearchParams, {
-                search: value.trim() ? value : null,
-              })
-            }
-            onStatusChange={(value) =>
-              setMergedSearchParams(setSearchParams, {
-                status: value === 'all' ? null : value,
-                warning: value === 'CheckedOut' ? searchParams.get('warning') : null,
-              })
-            }
-            onWarningChange={(value) =>
-              setMergedSearchParams(setSearchParams, {
-                warning: value === 'all' ? null : value,
-              })
-            }
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            warningFilter={warningFilter}
-          />
+          {statusFilter === 'CheckedOut' && (
+            <WarningFilterSelect
+              id="inventory-warning-filter"
+              value={warningFilter}
+              onChange={(value) =>
+                setMergedSearchParams(setSearchParams, { warning: value === 'all' ? null : value })
+              }
+            />
+          )}
 
-          {equipments.length === 0 ? (
-            <div className="empty-state">
-              <h3>{t.inventory.emptyTitle}</h3>
-              <p>{t.inventory.emptyText}</p>
-            </div>
-          ) : filteredEquipments.length === 0 ? (
-            <div className="empty-state">
-              <h3>{t.inventory.noResultsTitle}</h3>
-              <p>{t.inventory.noResultsText}</p>
-            </div>
-          ) : inventoryView === 'list' ? (
-            <div
-              className={`data-list data-list--inventory${
-                isAdmin ? ' data-list--inventory-admin' : ' data-list--inventory-user'
-              }`}
+          <div className="form-field">
+            <label className="visually-hidden" htmlFor="inventory-category-filter">
+              {t.inventory.categoryFilterLabel}
+            </label>
+            <select
+              id="inventory-category-filter"
+              value={categoryFilter}
+              onChange={(event) =>
+                setMergedSearchParams(setSearchParams, {
+                  category: event.target.value === 'all' ? null : event.target.value,
+                })
+              }
             >
-              <div className="data-list__header">
-                <span className="data-list__heading">{renderSortableHeading('asset', t.common.asset)}</span>
-                <span className="data-list__heading">{renderSortableHeading('assignee', t.inventory.assignee)}</span>
-                <span className="data-list__heading">{renderSortableHeading('serial', t.inventory.serial)}</span>
-                <span className="data-list__heading">{renderSortableHeading('status', t.common.status)}</span>
-                <span className="data-list__heading">{renderSortableHeading('recorded', t.inventory.recordedAt)}</span>
-                {isAdmin && (
-                  <span className="data-list__heading data-list__heading--actions">
-                    {t.common.actions}
-                  </span>
-                )}
-              </div>
+              <option value="all">{t.inventory.allCategories}</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </FilterPanel>
 
+        {equipments.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.inventory.emptyTitle}</h3>
+            <p>{t.inventory.emptyText}</p>
+          </div>
+        ) : filteredEquipments.length === 0 ? (
+          <div className="empty-state">
+            <h3>{t.inventory.noResultsTitle}</h3>
+            <p>{t.inventory.noResultsText}</p>
+          </div>
+        ) : inventoryView === 'list' ? (
+          <div
+            className={`data-list data-list--inventory${
+              isAdmin ? ' data-list--inventory-admin' : ' data-list--inventory-user'
+            }`}
+          >
+            <div className="data-list__header">
+              <span className="data-list__heading">{renderSortableHeading('asset', t.common.asset)}</span>
+              <span className="data-list__heading">{renderSortableHeading('assignee', t.inventory.assignee)}</span>
+              <span className="data-list__heading">{renderSortableHeading('serial', t.inventory.serial)}</span>
+              <span className="data-list__heading">{renderSortableHeading('status', t.common.status)}</span>
+              <span className="data-list__heading">{renderSortableHeading('recorded', t.inventory.recordedAt)}</span>
+              {isAdmin && (
+                <span className="data-list__heading data-list__heading--actions">
+                  {t.common.actions}
+                </span>
+              )}
+            </div>
+
+            <div className="data-list__body">
               {filteredEquipments.map((equipment) => {
                 const statusContext = getStatusContext(equipment)
-                const canSeeDueState = canSeeCheckoutDetails(equipment)
-                const dueState = canSeeDueState
-                  ? getDueState(equipment.activeCheckoutDueAt)
-                  : null
+                const isEditing = editingEquipmentId === equipment.id
 
-                return editingEquipmentId === equipment.id ? (
-                  renderEquipmentCard(equipment)
-                ) : (
-                  <EquipmentListRow
-                    key={equipment.id}
-                    actions={isAdmin ? renderEquipmentActions(equipment, { compact: true }) : null}
-                    canSeeDueState={canSeeDueState}
-                    dueState={dueState}
-                    equipment={equipment}
-                    statusContext={statusContext}
-                  />
+                return (
+                  <Fragment key={equipment.id}>
+                    <EquipmentListRow
+                      actions={isAdmin ? renderEquipmentActions(equipment) : null}
+                      equipment={equipment}
+                      isEditing={isEditing}
+                      statusContext={statusContext}
+                      warning={getVisibleWarning(equipment)}
+                    />
+                    {isEditing && renderEquipmentCard(equipment)}
+                  </Fragment>
                 )
               })}
             </div>
-          ) : (
-            <div className="equipment-list">{filteredEquipments.map(renderEquipmentCard)}</div>
-          )}
+          </div>
+        ) : (
+          <div className="equipment-list">{filteredEquipments.map(renderEquipmentCard)}</div>
+        )}
       </section>
     </div>
   )
-
 }
 
 export default EquipmentListPage

@@ -12,9 +12,19 @@
   display: grid;
   justify-self: start;
   justify-items: center;
+  /* 2 × the image center (24px offset + 220px), so the text centers over the image. */
+  width: 488px;
   gap: var(--space-3);
-  padding-left: var(--space-6);
   text-align: center;
+}
+
+.auth-aside__heading > * {
+  white-space: nowrap;
+}
+
+/* 2 × the laptop center (66px offset + 200px), not the whole image with the mouse. */
+.auth-aside__heading--register {
+  width: 532px;
 }
 
 .auth-aside .page-title {
@@ -33,10 +43,12 @@
   max-width: 440px;
   height: auto;
   margin-top: var(--space-4);
+  margin-left: var(--space-6);
 }
 
 .auth-aside__image--wide {
   max-width: 512px;
+  margin-left: 66px;
 }
 
 .auth-page__footer {
@@ -77,22 +89,9 @@
   margin-bottom: 4px;
 }
 
-.auth-page .section-heading__eyebrow {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-}
-
-.auth-page .section-heading--tight > div {
-  display: grid;
-  gap: 8px;
-}
-
 .auth-page .section-heading--tight .section-heading__title {
   margin-top: 0;
+  font-size: var(--text-xl);
 }
 
 .auth-page .section-heading--tight .section-heading__text {

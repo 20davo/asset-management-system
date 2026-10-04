@@ -1,28 +1,7 @@
-.form-actions,
-.equipment-card__actions {
+.form-actions {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-
-.equipment-card__actions {
-  margin-top: var(--space-4);
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.equipment-card__actions > button,
-.equipment-card__actions > .button-link {
-  height: 32px;
-  min-height: 32px;
-  width: 82px;
-  min-width: 82px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  line-height: 1;
-  box-sizing: border-box;
-  box-shadow: none;
 }
 
 .app button,
@@ -85,8 +64,32 @@
   box-shadow: var(--shadow-sm);
 }
 
-.form-submit {
-  min-width: 220px;
+.app button.form-submit,
+.app button.button-form,
+.button-link.button-form {
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-base);
+  box-shadow: none;
+}
+
+.app button.form-submit:hover,
+.app button.button-form:hover,
+.button-link.button-form:hover {
+  box-shadow: none;
+}
+
+.app button.button-secondary.button-form,
+.button-link.button-secondary.button-form {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.app button.button-secondary.button-form:hover,
+.button-link.button-secondary.button-form:hover {
+  background: var(--surface-soft);
+  border-color: var(--text-primary);
 }
 
 .form-submit--full {

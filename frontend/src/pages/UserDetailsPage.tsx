@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getUserCheckouts } from '../api/checkoutApi'
 import { deleteUser, getUser, updateUser as updateUserRequest } from '../api/userApi'
 import { AssignedAssetsSection } from '../components/checkout/AssignedAssetsSection'
-import { CheckoutsSection } from '../components/checkout/CheckoutsSection'
+import { CheckoutHistorySection } from '../components/checkout/CheckoutHistorySection'
+import { CheckoutStats } from '../components/checkout/CheckoutStats'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -11,7 +12,7 @@ import type { CheckoutItem } from '../types/checkout'
 import type { ManagedUser } from '../types/user'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { getApiMessage } from '../utils/apiMessages'
-import { getRoleLabel, isCheckoutOverdue } from '../utils/presentation'
+import { getRoleLabel } from '../utils/labels'
 
 interface UserFormState {
   name: string
@@ -78,9 +79,9 @@ function UserDetailsPage() {
     () => checkouts.filter((checkout) => !!checkout.returnedAt),
     [checkouts],
   )
-  const overdueCount = activeItems.filter((checkout) =>
-    isCheckoutOverdue(checkout.dueAt, checkout.returnedAt),
-  ).length
+  const isAdminAccount = selectedUser?.role === 'Admin'
+  // Admins cannot hold assets, so their checkout parts only show up for old records.
+  const showCheckouts = !isAdminAccount || checkouts.length > 0
   const isSelf = !!selectedUser && !!user && selectedUser.id === user.id
   const isSelfRoleLocked = isSelf && selectedUser?.role === 'Admin'
   const deleteBlocked = isSelf
@@ -170,55 +171,23 @@ function UserDetailsPage() {
 
   return (
     <div className="page-shell">
-      <Link to="/users" className="back-link">
-        {t.users.backToUsers}
-      </Link>
+      <nav className="details-crumbs" aria-label={t.details.breadcrumb}>
+        <Link to="/users">{t.nav.users}</Link>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{selectedUser.name}</span>
+      </nav>
+
+      <h1 className="visually-hidden">{selectedUser.name}</h1>
 
       {errorMessage && <FeedbackMessage type="error" message={errorMessage} />}
       {successMessage && <FeedbackMessage type="success" message={successMessage} />}
 
-      <section className="page-hero">
-        <div className="page-hero__content">
-          <span className="page-kicker">{t.users.detailHeroKicker}</span>
-          <h1 className="page-title">{selectedUser.name}</h1>
-          <p className="page-subtitle">{t.users.detailHeroText(selectedUser.email)}</p>
-        </div>
-
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.users.panelLabel}</span>
-          <strong className="page-hero__panel-value">
-            {getRoleLabel(selectedUser.role, language)}
-          </strong>
-          <p className="page-hero__panel-text user-details__email">{selectedUser.email}</p>
-        </div>
-      </section>
-
-      <section className="stats-grid stats-grid--three">
-        <article className="stat-card">
-          <span className="stat-card__label">{t.users.activeCheckoutsLabel}</span>
-          <strong className="stat-card__value">{activeItems.length}</strong>
-          <span className="stat-card__note">{t.users.activeTrackedNote}</span>
-        </article>
-        <article className="stat-card">
-          <span className="stat-card__label">{t.users.overdueCheckoutsLabel}</span>
-          <strong className="stat-card__value">{overdueCount}</strong>
-          <span className="stat-card__note">{t.users.overdueTrackedNote}</span>
-        </article>
-        <article className="stat-card">
-          <span className="stat-card__label">{t.users.totalCheckoutsLabel}</span>
-          <strong className="stat-card__value">{checkouts.length}</strong>
-          <span className="stat-card__note">{t.users.totalTrackedNote}</span>
-        </article>
-      </section>
+      {showCheckouts && <CheckoutStats active={activeItems} history={historyItems} />}
 
       <section className="details-layout">
         <article className="section-card">
           <div className="section-heading section-heading--tight">
-            <div>
-              <span className="section-heading__eyebrow">{t.users.manageKicker}</span>
-              <h2 className="section-heading__title">{t.users.manageTitle}</h2>
-              <p className="section-heading__text">{t.users.manageText}</p>
-            </div>
+            <h2 className="section-heading__title">{t.users.manageTitle}</h2>
           </div>
 
           <form className="auth-form" onSubmit={handleSave}>
@@ -282,61 +251,65 @@ function UserDetailsPage() {
 
         <aside className="section-card section-card--compact">
           <div className="section-heading section-heading--tight">
+            <h2 className="section-heading__title">{t.users.accessTitle}</h2>
+          </div>
+
+          <dl className="details-props__list">
             <div>
-              <span className="section-heading__eyebrow">{t.users.accessKicker}</span>
-              <h2 className="section-heading__title">{t.users.accessTitle}</h2>
-              <p className="section-heading__text">{t.users.accessText}</p>
+              <dt>{t.profile.nameLabel}</dt>
+              <dd>{selectedUser.name}</dd>
             </div>
-          </div>
+            <div>
+              <dt>{t.profile.emailLabel}</dt>
+              <dd>{selectedUser.email}</dd>
+            </div>
+            <div>
+              <dt>{t.profile.roleLabel}</dt>
+              <dd>{getRoleLabel(selectedUser.role, language)}</dd>
+            </div>
+          </dl>
 
-          <div className="info-stack">
-            <div className="info-stack__item">
-              <span className="info-stack__label">{t.profile.roleLabel}</span>
-              <strong>{getRoleLabel(selectedUser.role, language)}</strong>
+          <div className="user-delete">
+            <span className="user-delete__label">{t.users.deleteUserLabel}</span>
+            <p className="user-delete__text">
+              {deleteBlocked ? t.users.selfDeleteBlocked : t.users.deleteUserText}
+            </p>
+            <div className="profile-actions profile-actions--compact">
+              <button
+                type="button"
+                className="button-danger button-form"
+                onClick={handleDelete}
+                disabled={isDeleting || deleteBlocked}
+              >
+                {isDeleting ? t.users.deletingUser : t.users.deleteUserAction}
+              </button>
             </div>
-            <div className="info-stack__item">
-              <span className="info-stack__label">{t.users.deleteUserLabel}</span>
-              <strong>{deleteBlocked ? t.users.selfDeleteBlocked : t.users.deleteUserText}</strong>
-            </div>
-          </div>
-
-          <div className="profile-actions profile-actions--compact">
-            <button
-              type="button"
-              className="button-danger"
-              onClick={handleDelete}
-              disabled={isDeleting || deleteBlocked}
-            >
-              {isDeleting ? t.users.deletingUser : t.users.deleteUserAction}
-            </button>
           </div>
         </aside>
       </section>
 
-      <AssignedAssetsSection
-        items={activeItems}
-        emptyTitle={t.users.currentEmptyTitle}
-        emptyText={t.users.currentEmptyText}
-        searchPlaceholder={t.users.currentSearchPlaceholder}
-        heroKicker={t.users.currentItemsKicker}
-        heroTitle={t.users.currentItemsTitle}
-        heroText={t.users.currentItemsText}
-        queryKeyPrefix="assigned"
-        enableWarningFilter
-      />
+      {(!isAdminAccount || activeItems.length > 0) && (
+        <AssignedAssetsSection
+          items={activeItems}
+          emptyTitle={t.users.currentEmptyTitle}
+          emptyText={t.users.currentEmptyText}
+          searchPlaceholder={t.users.currentSearchPlaceholder}
+          title={t.users.currentItemsTitle}
+          queryKeyPrefix="assigned"
+          enableWarningFilter
+        />
+      )}
 
-      <CheckoutsSection
-        items={historyItems}
-        emptyTitle={t.users.historyEmptyTitle}
-        emptyText={t.users.historyEmptyText}
-        searchPlaceholder={t.users.historySearchPlaceholder}
-        heroKicker={t.users.historyKicker}
-        heroTitle={t.users.historyTitle}
-        heroText={t.users.historyText}
-        compact
-        linkAssetNameOnly
-        queryKeyPrefix="history"
-      />
+      {(!isAdminAccount || historyItems.length > 0) && (
+        <CheckoutHistorySection
+          items={historyItems}
+          emptyTitle={t.users.historyEmptyTitle}
+          emptyText={t.users.historyEmptyText}
+          searchPlaceholder={t.users.historySearchPlaceholder}
+          title={t.users.historyTitle}
+          queryKeyPrefix="history"
+        />
+      )}
     </div>
   )
 }

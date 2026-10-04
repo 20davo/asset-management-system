@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ChangeEvent, Dispatch, FormEvent, SetStateAction } from 'react'
 import { useLanguage } from '../../context/LanguageContext'
+import { ALLOWED_IMAGE_TYPES, type EquipmentFormState } from '../../hooks/useEquipmentForm'
 import { ProtectedAssetImage } from '../media/ProtectedAssetImage'
-
-export interface EquipmentFormState {
-  name: string
-  category: string
-  description: string
-  image: File | null
-  imagePreviewUrl: string
-  removeImage: boolean
-  serialNumber: string
-}
+import { Icon } from '../shared/Icon'
 
 interface EquipmentFormProps {
   categoryDatalistId: string
@@ -28,21 +20,7 @@ interface EquipmentFormProps {
   setForm: Dispatch<SetStateAction<EquipmentFormState>>
   submitLabel: string
   submittingLabel: string
-  titleBlock?: {
-    kicker: string
-    title: string
-    text: string
-  }
-}
-
-export const emptyEquipmentForm: EquipmentFormState = {
-  name: '',
-  category: '',
-  description: '',
-  image: null,
-  imagePreviewUrl: '',
-  removeImage: false,
-  serialNumber: '',
+  title?: string
 }
 
 export function EquipmentForm({
@@ -60,7 +38,7 @@ export function EquipmentForm({
   setForm,
   submitLabel,
   submittingLabel,
-  titleBlock,
+  title,
 }: EquipmentFormProps) {
   const { t } = useLanguage()
   const formRef = useRef<HTMLFormElement | null>(null)
@@ -96,13 +74,23 @@ export function EquipmentForm({
 
   return (
     <form ref={formRef} className="auth-form admin-form" onSubmit={onSubmit}>
-      {titleBlock && (
-        <div className="admin-form__title">
-          <div className="admin-form__title-top">
-            <span className="section-heading__eyebrow">{titleBlock.kicker}</span>
-            <p className="section-heading__text">{titleBlock.text}</p>
-          </div>
-          <h3 className="section-heading__title">{titleBlock.title}</h3>
+      {title && (
+        <div className="admin-form__head">
+          <h2 id={`${idPrefix}-form-title`} className="section-heading__title">
+            {title}
+          </h2>
+          {onCancel && (
+            <button
+              type="button"
+              className="button-secondary button-icon"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              title={t.common.close}
+              aria-label={t.common.close}
+            >
+              <Icon kind="close" />
+            </button>
+          )}
         </div>
       )}
 
@@ -178,7 +166,7 @@ export function EquipmentForm({
           {onCancel && (
             <button
               type="button"
-              className="button-secondary"
+              className="button-secondary button-form"
               onClick={onCancel}
               disabled={isSubmitting}
             >
@@ -192,12 +180,12 @@ export function EquipmentForm({
         <div className="asset-image-field">
           <span className="asset-image-field__label">{t.inventory.image}</span>
 
-          <div className="equipment-card__media asset-image-field__preview">
+          <div className="asset-image-field__preview">
             <ProtectedAssetImage
               imageUrl={form.imagePreviewUrl}
               alt={form.name || mediaFallbackName}
-              className="equipment-card__image"
-              placeholderClassName="equipment-card__image-placeholder"
+              className="asset-image-field__image"
+              placeholderClassName="asset-image-placeholder"
               placeholderText={t.common.noImage}
             />
           </div>
@@ -207,14 +195,14 @@ export function EquipmentForm({
               id={`${idPrefix}-image`}
               className="upload-control__input"
               type="file"
-              accept="image/*"
+              accept={ALLOWED_IMAGE_TYPES.join(',')}
               onChange={onImageChange}
             />
             <label htmlFor={`${idPrefix}-image`} className="upload-control__button">
               {form.imagePreviewUrl ? t.inventory.imageReplace : t.inventory.imageSelect}
             </label>
             {form.imagePreviewUrl && (
-              <button type="button" className="button-secondary" onClick={onRemoveImage}>
+              <button type="button" className="button-secondary button-form" onClick={onRemoveImage}>
                 {t.inventory.imageRemove}
               </button>
             )}

@@ -1,100 +1,148 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { changePassword } from '../api/authApi'
+import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getRoleLabel } from '../utils/presentation'
+import { getApiErrorMessage } from '../utils/apiErrors'
+import { getApiMessage } from '../utils/apiMessages'
+import { getRoleLabel } from '../utils/labels'
 
 function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateToken } = useAuth()
   const { language, t } = useLanguage()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!user) {
     return null
   }
 
-  const primaryRoute = user.role === 'Admin' ? '/users' : '/my-items'
-  const primaryLabel =
-    user.role === 'Admin' ? t.profile.primaryAdminAction : t.profile.primaryUserAction
-  const secondaryTitle =
-    user.role === 'Admin' ? t.profile.managementTitle : t.profile.quickLinksTitle
-  const secondaryText =
-    user.role === 'Admin' ? t.profile.managementText : t.profile.quickLinksText
-  const secondaryKicker =
-    user.role === 'Admin' ? t.profile.managementKicker : t.profile.quickLinksKicker
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (newPassword !== confirmNewPassword) {
+      setErrorMessage(t.profile.passwordMismatch)
+      setSuccessMessage('')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setErrorMessage('')
+      const response = await changePassword({
+        currentPassword,
+        newPassword,
+        confirmNewPassword,
+      })
+
+      if (response.token) {
+        updateToken(response.token)
+      }
+
+      setSuccessMessage(getApiMessage(response.code, language) ?? response.message)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmNewPassword('')
+    } catch (error: unknown) {
+      setErrorMessage(getApiErrorMessage(error, t.profile.passwordChangeError, language))
+      setSuccessMessage('')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="page-shell">
       <section className="page-hero">
         <div className="page-hero__content">
-          <span className="page-kicker">{t.profile.heroKicker}</span>
-          <h1 className="page-title">{user.name}</h1>
-          <p className="page-subtitle">{t.profile.heroText}</p>
-        </div>
-
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.profile.panelLabel}</span>
-          <strong className="page-hero__panel-value">
-            {getRoleLabel(user.role, language)}
-          </strong>
-          <p className="page-hero__panel-text profile-page__email">{user.email}</p>
+          <h1 className="page-title">{t.profile.pageTitle}</h1>
         </div>
       </section>
 
       <section className="details-layout">
         <article className="section-card">
           <div className="section-heading section-heading--tight">
-            <div>
-              <span className="section-heading__eyebrow">{t.profile.accountKicker}</span>
-              <h2 className="section-heading__title">{t.profile.accountTitle}</h2>
-              <p className="section-heading__text">{t.profile.accountText}</p>
-            </div>
+            <h2 className="section-heading__title">{t.profile.securityTitle}</h2>
           </div>
 
-          <div className="profile-summary-grid">
-            <div className="profile-summary-column profile-summary-column--main">
-              <article className="profile-summary-item">
-                <span className="profile-summary-item__label">{t.profile.nameLabel}</span>
-                <strong className="profile-summary-item__value">{user.name}</strong>
-              </article>
-
-              <article className="profile-summary-item">
-                <span className="profile-summary-item__label">{t.profile.emailLabel}</span>
-                <strong className="profile-summary-item__value profile-page__email">
-                  {user.email}
-                </strong>
-              </article>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="form-field">
+              <label htmlFor="current-password">{t.profile.currentPasswordLabel}</label>
+              <input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder={t.auth.passwordPlaceholder}
+                autoComplete="current-password"
+                required
+              />
             </div>
 
-            <div className="profile-summary-column profile-summary-column--role">
-              <article className="profile-summary-item">
-                <span className="profile-summary-item__label">{t.profile.roleLabel}</span>
-                <strong className="profile-summary-item__value">
-                  {getRoleLabel(user.role, language)}
-                </strong>
-              </article>
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="new-password">{t.profile.newPasswordLabel}</label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder={t.auth.minPasswordPlaceholder}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="confirm-new-password">{t.profile.confirmNewPasswordLabel}</label>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) => setConfirmNewPassword(event.target.value)}
+                  placeholder={t.auth.minPasswordPlaceholder}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                />
+              </div>
             </div>
-          </div>
+
+            {errorMessage && <FeedbackMessage type="error" message={errorMessage} />}
+            {successMessage && <FeedbackMessage type="success" message={successMessage} />}
+
+            <div className="form-actions">
+              <button type="submit" className="form-submit" disabled={isSubmitting}>
+                {isSubmitting ? t.profile.passwordChangeSubmitting : t.profile.passwordChangeSubmit}
+              </button>
+            </div>
+          </form>
         </article>
 
         <aside className="section-card section-card--compact">
           <div className="section-heading section-heading--tight">
-            <div>
-              <span className="section-heading__eyebrow">{secondaryKicker}</span>
-              <h2 className="section-heading__title">{secondaryTitle}</h2>
-              <p className="section-heading__text">{secondaryText}</p>
-            </div>
+            <h2 className="section-heading__title">{t.profile.accountTitle}</h2>
           </div>
 
-          <div className="profile-actions">
-            <Link to={primaryRoute} className="button-link button-secondary">
-              {primaryLabel}
-            </Link>
-            <Link to="/profile/security" className="button-link button-secondary">
-              {t.profile.securityAction}
-            </Link>
-            <Link to="/settings" className="button-link button-secondary">
-              {t.profile.settingsAction}
-            </Link>
-          </div>
+          <dl className="details-props__list">
+            <div>
+              <dt>{t.profile.nameLabel}</dt>
+              <dd>{user.name}</dd>
+            </div>
+            <div>
+              <dt>{t.profile.emailLabel}</dt>
+              <dd>{user.email}</dd>
+            </div>
+            <div>
+              <dt>{t.profile.roleLabel}</dt>
+              <dd>{getRoleLabel(user.role, language)}</dd>
+            </div>
+          </dl>
         </aside>
       </section>
     </div>

@@ -1,9 +1,46 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { REGISTRATION_ENABLED } from '../../config/featureFlags'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
-import { getInitials, getRoleLabel } from '../../utils/presentation'
+import { getRoleLabel } from '../../utils/labels'
+
+interface NavItemProps {
+  end?: boolean
+  label: string
+  to: string
+}
+
+function NavItem({ end, label, to }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      data-text={label}
+      className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`}
+    >
+      {label}
+    </NavLink>
+  )
+}
+
+const personIcon = (
+  <svg viewBox="0 0 24 24">
+    <path
+      d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M5 20a7 7 0 0 1 14 0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+)
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
@@ -43,6 +80,12 @@ function Navbar() {
     }
   }, [isUserMenuPinned])
 
+  function closeUserMenu() {
+    setIsUserMenuPinned(false)
+    setIsUserMenuHovered(false)
+    setIsUserMenuHoverSuppressed(false)
+  }
+
   return (
     <header className="navbar-wrap">
       <nav className="navbar">
@@ -62,75 +105,24 @@ function Navbar() {
 
         <div className="navbar__cluster">
           <div className="navbar__links">
-            {isAuthenticated && (
-              <NavLink
-                to="/"
-                end
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.inventory}
-              </NavLink>
-            )}
-
-            {isAuthenticated && user?.role === 'Admin' && (
-              <NavLink
-                to="/users"
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.users}
-              </NavLink>
-            )}
-
-            {isAuthenticated && user?.role === 'Admin' && (
-              <NavLink
-                to="/all-checkouts"
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.allCheckouts}
-              </NavLink>
-            )}
-
-            {isAuthenticated && user?.role !== 'Admin' && (
-              <NavLink
-                to="/my-items"
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.myItems}
-              </NavLink>
-            )}
-
-            {!isAuthenticated && REGISTRATION_ENABLED && (
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.login}
-              </NavLink>
-            )}
-
-            {!isAuthenticated && REGISTRATION_ENABLED && (
-              <NavLink
-                to="/register"
-                className={({ isActive }) =>
-                  `navbar__link ${isActive ? 'navbar__link--active' : ''}`
-                }
-              >
-                {t.nav.register}
-              </NavLink>
+            {isAuthenticated && user ? (
+              <>
+                <NavItem to="/" end label={t.nav.inventory} />
+                {user.role === 'Admin' ? (
+                  <>
+                    <NavItem to="/users" label={t.nav.users} />
+                    <NavItem to="/all-checkouts" label={t.nav.allCheckouts} />
+                  </>
+                ) : (
+                  <NavItem to="/my-items" label={t.nav.myItems} />
+                )}
+              </>
+            ) : (
+              REGISTRATION_ENABLED && <NavItem to="/login" label={t.nav.login} />
             )}
           </div>
 
-          {isAuthenticated && (
+          {isAuthenticated && user && (
             <div className="navbar__session">
               <div
                 className="navbar__user-menu"
@@ -163,84 +155,46 @@ function Navbar() {
                     setIsUserMenuHoverSuppressed(true)
                   }}
                   aria-expanded={isUserMenuOpen}
-                  aria-haspopup="menu"
                   aria-label={
                     isUserMenuOpen ? t.nav.closeUserMenu : t.nav.openUserMenu
                   }
                 >
-                  <div className="navbar__user-card">
-                    <span className="navbar__user-avatar" aria-hidden="true">
-                      {getInitials(user?.name) || 'A'}
-                    </span>
-                    <span className="navbar__user-name">
-                      {user?.name ?? t.nav.activeSession}
-                    </span>
-                    <span className="navbar__user-role">
-                      {user ? getRoleLabel(user.role, language) : t.nav.loggedIn}
-                    </span>
-                    <span className="navbar__user-caret" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <path
-                          d="m6 9 6 6 6-6"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                  </div>
+                  <span className="navbar__user-icon" aria-hidden="true">
+                    {personIcon}
+                  </span>
                 </button>
 
                 {isUserMenuOpen && (
                   <div
                     className="navbar__dropdown navbar__dropdown--open"
-                    role="menu"
+                    role="group"
                     aria-label={t.nav.accountMenu}
                   >
+                    <div className="navbar__menu-head">
+                      <strong className="navbar__menu-name">
+                        {user.name}
+                        {user.role === 'Admin' && (
+                          <span className="navbar__menu-role">
+                            {' '}
+                            ({getRoleLabel(user.role, language)})
+                          </span>
+                        )}
+                      </strong>
+                      <span className="navbar__menu-email">{user.email}</span>
+                    </div>
+
                     <div className="navbar__menu-links">
                       <NavLink
                         to="/profile"
                         className={({ isActive }) =>
                           `navbar__menu-link ${isActive ? 'navbar__menu-link--active' : ''}`
                         }
-                        onClick={() => {
-                          setIsUserMenuPinned(false)
-                          setIsUserMenuHovered(false)
-                          setIsUserMenuHoverSuppressed(false)
-                        }}
+                        onClick={closeUserMenu}
                       >
                         <span className="navbar__menu-link-icon" aria-hidden="true">
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                            />
-                            <path
-                              d="M5 20a7 7 0 0 1 14 0"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
+                          {personIcon}
                         </span>
                         <span className="navbar__menu-link-title">{t.nav.profile}</span>
-                        <span className="navbar__menu-link-arrow" aria-hidden="true">
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="m9 6 6 6-6 6"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
                       </NavLink>
 
                       <NavLink
@@ -248,11 +202,7 @@ function Navbar() {
                         className={({ isActive }) =>
                           `navbar__menu-link ${isActive ? 'navbar__menu-link--active' : ''}`
                         }
-                        onClick={() => {
-                          setIsUserMenuPinned(false)
-                          setIsUserMenuHovered(false)
-                          setIsUserMenuHoverSuppressed(false)
-                        }}
+                        onClick={closeUserMenu}
                       >
                         <span className="navbar__menu-link-icon" aria-hidden="true">
                           <svg viewBox="0 0 24 24">
@@ -273,27 +223,14 @@ function Navbar() {
                           </svg>
                         </span>
                         <span className="navbar__menu-link-title">{t.nav.settings}</span>
-                        <span className="navbar__menu-link-arrow" aria-hidden="true">
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="m9 6 6 6-6 6"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </span>
                       </NavLink>
                     </div>
 
                     <button
-                      className="navbar__dropdown-logout navbar__dropdown-logout--primary"
+                      type="button"
+                      className="navbar__dropdown-logout"
                       onClick={() => {
-                        setIsUserMenuPinned(false)
-                        setIsUserMenuHovered(false)
-                        setIsUserMenuHoverSuppressed(false)
+                        closeUserMenu()
                         logout()
                       }}
                     >

@@ -3,12 +3,15 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react
 import { getAllCheckouts } from '../api/checkoutApi'
 import { getUsers } from '../api/userApi'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
+import { FilterPanel } from '../components/shared/FilterPanel'
+import { SortableHeading } from '../components/shared/SortableHeading'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import type { CheckoutItem } from '../types/checkout'
 import type { ManagedUser } from '../types/user'
 import { getApiErrorMessage } from '../utils/apiErrors'
-import { getRoleLabel, isCheckoutOverdue } from '../utils/presentation'
+import { isCheckoutOverdue } from '../utils/checkoutDeadlines'
+import { getRoleLabel } from '../utils/labels'
 import {
   getEnumSearchParam,
   getTextSearchParam,
@@ -158,26 +161,13 @@ function UsersPage() {
   }
 
   function renderSortableHeading(field: UserSortField, label: string) {
-    const isActive = sortField === field
-    const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
-    const sortStateLabel = !isActive
-      ? t.common.sortNotSorted
-      : sortDirection === 'asc'
-        ? t.common.sortAscending
-        : t.common.sortDescending
-
     return (
-      <button
-        type="button"
-        className="data-list__sort-button"
-        onClick={() => toggleSortSearchParams(setSearchParams, 'sort', 'dir', field)}
-      >
-        <span>{label}</span>
-        <span className="data-list__sort-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span className="visually-hidden">{sortStateLabel}</span>
-      </button>
+      <SortableHeading
+        direction={sortDirection}
+        isActive={sortField === field}
+        label={label}
+        onSort={() => toggleSortSearchParams(setSearchParams, 'sort', 'dir', field)}
+      />
     )
   }
 
@@ -199,17 +189,7 @@ function UsersPage() {
 
       <section className="page-hero">
         <div className="page-hero__content">
-          <span className="page-kicker">{t.users.heroKicker}</span>
           <h1 className="page-title">{t.users.heroTitle}</h1>
-          <p className="page-subtitle">{t.users.heroText}</p>
-        </div>
-
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.users.panelLabel}</span>
-          <strong className="page-hero__panel-value">
-            {users.length} {t.users.panelValue}
-          </strong>
-          <p className="page-hero__panel-text">{t.users.panelText}</p>
         </div>
       </section>
 
@@ -217,75 +197,49 @@ function UsersPage() {
         <article className="stat-card">
           <span className="stat-card__label">{t.users.totalUsersLabel}</span>
           <strong className="stat-card__value">{users.length}</strong>
-          <span className="stat-card__note">{t.users.totalUsersNote}</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">{t.users.adminUsersLabel}</span>
           <strong className="stat-card__value">{adminCount}</strong>
-          <span className="stat-card__note">{t.users.adminUsersNote}</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">{t.users.activeTracked}</span>
           <strong className="stat-card__value">{activeCheckouts}</strong>
-          <span className="stat-card__note">{t.users.activeTrackedNote}</span>
         </article>
       </section>
 
       <section className="inventory-stack">
-        <div className="section-heading section-heading--toolbar">
-          <div>
-            <span className="section-heading__eyebrow">{t.users.heroKicker}</span>
-            <h2 className="section-heading__title">{t.users.heroTitle}</h2>
+        <FilterPanel
+          filteredCount={filteredUsers.length}
+          layout="users"
+          onReset={resetFilters}
+          onSearchChange={(value) =>
+            setMergedSearchParams(setSearchParams, { search: value.trim() ? value : null })
+          }
+          searchId="users-search"
+          searchPlaceholder={t.users.searchPlaceholder}
+          searchValue={searchQuery}
+          totalCount={users.length}
+        >
+          <div className="form-field">
+            <label className="visually-hidden" htmlFor="users-role-filter">
+              {t.common.roleFilterLabel}
+            </label>
+            <select
+              id="users-role-filter"
+              value={roleFilter}
+              onChange={(event) =>
+                setMergedSearchParams(setSearchParams, {
+                  role: event.target.value === 'all' ? null : event.target.value,
+                })
+              }
+            >
+              <option value="all">{t.common.allRoles}</option>
+              <option value="Admin">{getRoleLabel('Admin', language)}</option>
+              <option value="User">{getRoleLabel('User', language)}</option>
+            </select>
           </div>
-          <div className="section-heading__aside">
-            <p className="section-heading__text">{t.users.heroText}</p>
-          </div>
-        </div>
-
-        <section className="section-card section-card--compact filter-panel">
-          <div className="filter-panel__grid filter-panel__grid--users">
-            <div className="form-field">
-              <label htmlFor="users-search">{t.common.search}</label>
-              <input
-                id="users-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) =>
-                  setMergedSearchParams(setSearchParams, {
-                    search: event.target.value.trim() ? event.target.value : null,
-                  })
-                }
-                placeholder={t.users.searchPlaceholder}
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="users-role-filter">{t.common.roleFilterLabel}</label>
-              <select
-                id="users-role-filter"
-                value={roleFilter}
-                onChange={(event) =>
-                  setMergedSearchParams(setSearchParams, {
-                    role: event.target.value === 'all' ? null : event.target.value,
-                  })
-                }
-              >
-                <option value="all">{t.common.allRoles}</option>
-                <option value="Admin">{getRoleLabel('Admin', language)}</option>
-                <option value="User">{getRoleLabel('User', language)}</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="filter-panel__footer">
-            <p className="filter-panel__summary">
-              {filteredUsers.length} / {users.length}
-            </p>
-            <button type="button" className="button-secondary" onClick={resetFilters}>
-              {t.common.clearFilters}
-            </button>
-          </div>
-        </section>
+        </FilterPanel>
 
         {users.length === 0 ? (
           <div className="empty-state">
@@ -308,56 +262,58 @@ function UsersPage() {
               <span className="data-list__heading">{renderSortableHeading('closedCheckouts', t.users.closedCheckoutsLabel)}</span>
             </div>
 
-            {filteredUsers.map((candidate) => (
-              <article key={candidate.id} className="data-list__row">
-                <div className="data-list__cell data-list__cell--primary">
-                  <div className="data-list__context-stack">
-                    <Link
-                      to={`/users/${candidate.id}`}
-                      className="context-link context-link--stack"
-                    >
-                      <strong className="data-list__context-name context-link__primary">
-                        {candidate.name}
-                      </strong>
-                    </Link>
-                    <span className="data-list__context-value">{candidate.email}</span>
+            <div className="data-list__body">
+              {filteredUsers.map((candidate) => (
+                <article key={candidate.id} className="data-list__row">
+                  <div className="data-list__cell data-list__cell--primary">
+                    <div className="data-list__context-stack">
+                      <Link
+                        to={`/users/${candidate.id}`}
+                        className="context-link context-link--stack"
+                      >
+                        <strong className="data-list__context-name context-link__primary">
+                          {candidate.name}
+                        </strong>
+                      </Link>
+                      <span className="data-list__context-value">{candidate.email}</span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">{t.profile.roleLabel}</span>
-                  <span className="data-list__value">{getRoleLabel(candidate.role, language)}</span>
-                </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">{t.profile.roleLabel}</span>
+                    <span className="data-list__value">{getRoleLabel(candidate.role, language)}</span>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">
-                    {t.users.activeCheckoutsLabel}
-                  </span>
-                  <span className="data-list__value">{candidate.activeCheckouts}</span>
-                </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">
+                      {t.users.activeCheckoutsLabel}
+                    </span>
+                    <span className="data-list__value">{candidate.activeCheckouts}</span>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">
-                    {t.users.overdueCheckoutsLabel}
-                  </span>
-                  <span className="data-list__value">{candidate.overdueCheckouts}</span>
-                </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">
+                      {t.users.overdueCheckoutsLabel}
+                    </span>
+                    <span className="data-list__value">{candidate.overdueCheckouts}</span>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">
-                    {t.users.totalCheckoutsLabel}
-                  </span>
-                  <span className="data-list__value">{candidate.totalCheckouts}</span>
-                </div>
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">
+                      {t.users.totalCheckoutsLabel}
+                    </span>
+                    <span className="data-list__value">{candidate.totalCheckouts}</span>
+                  </div>
 
-                <div className="data-list__cell">
-                  <span className="data-list__mobile-label">
-                    {t.users.closedCheckoutsLabel}
-                  </span>
-                  <span className="data-list__value">{candidate.closedCheckouts}</span>
-                </div>
-              </article>
-            ))}
+                  <div className="data-list__cell">
+                    <span className="data-list__mobile-label">
+                      {t.users.closedCheckoutsLabel}
+                    </span>
+                    <span className="data-list__value">{candidate.closedCheckouts}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         )}
       </section>

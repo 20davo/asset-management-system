@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { getAllCheckouts } from '../api/checkoutApi'
-import { CheckoutLogFilters } from '../components/checkout/CheckoutLogFilters'
-import { ProtectedAssetImage } from '../components/media/ProtectedAssetImage'
+import { CheckoutCard } from '../components/checkout/CheckoutCard'
+import { AssetCell } from '../components/shared/AssetCell'
+import { DateTimeValue } from '../components/shared/DateTimeValue'
+import { FilterPanel } from '../components/shared/FilterPanel'
+import { SortableHeading } from '../components/shared/SortableHeading'
+import { ViewSwitch } from '../components/shared/ViewSwitch'
+import { WarningFilterSelect } from '../components/shared/WarningFilterSelect'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import type { CheckoutItem } from '../types/checkout'
-import {
-  formatDateTime,
-  getStatusBadgeClass,
-  getStatusLabel,
-  isCheckoutDueSoon,
-  isCheckoutOverdue,
-} from '../utils/presentation'
 import { getApiErrorMessage } from '../utils/apiErrors'
+import { getCheckoutWarning, isCheckoutOverdue, WARNING_FILTERS } from '../utils/checkoutDeadlines'
+import { matchesCheckoutSearch, sortCheckouts } from '../utils/checkoutList'
+import { getStatusBadgeClass, getStatusLabel } from '../utils/labels'
 import {
   getEnumSearchParam,
   getTextSearchParam,
@@ -22,8 +23,7 @@ import {
 } from '../utils/searchParams'
 
 type CheckoutFilter = 'all' | 'active' | 'closed'
-type WarningFilter = 'all' | 'none' | 'dueSoon' | 'overdue'
-type CheckoutSortField =
+type AllCheckoutsSortField =
   | 'asset'
   | 'user'
   | 'status'
@@ -37,36 +37,6 @@ function getCheckoutState(checkout: CheckoutItem): Exclude<CheckoutFilter, 'all'
   }
 
   return 'active'
-}
-
-function getCheckoutTimelineState(checkout: CheckoutItem) {
-  if (isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)) {
-    return {
-      alertClass: 'deadline-flag deadline-flag--danger',
-      alertLabel: 'overdue',
-    }
-  }
-
-  if (isCheckoutDueSoon(checkout.dueAt, checkout.returnedAt)) {
-    return {
-      alertClass: 'deadline-flag deadline-flag--warning',
-      alertLabel: 'dueSoon',
-    }
-  }
-
-  return null
-}
-
-function getCheckoutWarningState(checkout: CheckoutItem): Exclude<WarningFilter, 'all'> {
-  if (isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)) {
-    return 'overdue'
-  }
-
-  if (isCheckoutDueSoon(checkout.dueAt, checkout.returnedAt)) {
-    return 'dueSoon'
-  }
-
-  return 'none'
 }
 
 function AllCheckoutsPage() {
@@ -93,7 +63,7 @@ function AllCheckoutsPage() {
   const warningFilter = getEnumSearchParam(
     searchParams,
     'warning',
-    ['all', 'none', 'dueSoon', 'overdue'] as const,
+    WARNING_FILTERS,
     'all',
   )
   const sortField = getEnumSearchParam(
@@ -127,68 +97,16 @@ function AllCheckoutsPage() {
   const returnedCount = checkouts.filter((checkout) => !!checkout.returnedAt).length
 
   const filteredCheckouts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase()
-
-      const result = checkouts.filter((checkout) => {
-        const checkoutState = getCheckoutState(checkout)
-        const warningState = getCheckoutWarningState(checkout)
-      const matchesStatus =
-        statusFilter === 'all' ? true : checkoutState === statusFilter
+    const result = checkouts.filter((checkout) => {
+      const warning = getCheckoutWarning(checkout.dueAt, checkout.returnedAt) ?? 'none'
+      const matchesStatus = statusFilter === 'all' || getCheckoutState(checkout) === statusFilter
       const matchesWarning =
-        statusFilter !== 'active' || warningFilter === 'all'
-          ? true
-          : warningState === warningFilter
+        statusFilter !== 'active' || warningFilter === 'all' || warning === warningFilter
 
-      const matchesSearch =
-        normalizedQuery.length === 0
-          ? true
-          : [
-              checkout.equipment.name,
-              checkout.equipment.category,
-              checkout.equipment.serialNumber,
-              checkout.user.name,
-              checkout.user.email,
-              checkout.note ?? '',
-            ]
-              .join(' ')
-              .toLowerCase()
-              .includes(normalizedQuery)
-
-      return matchesStatus && matchesSearch && matchesWarning
+      return matchesStatus && matchesWarning && matchesCheckoutSearch(checkout, searchQuery)
     })
 
-    result.sort((left, right) => {
-      const multiplier = sortDirection === 'asc' ? 1 : -1
-
-      switch (sortField) {
-        case 'asset':
-          return left.equipment.name.localeCompare(right.equipment.name, language) * multiplier
-        case 'user':
-          return left.user.name.localeCompare(right.user.name, language) * multiplier
-        case 'status':
-          return (
-            getStatusLabel(left.equipment.status, language).localeCompare(
-              getStatusLabel(right.equipment.status, language),
-              language,
-            ) * multiplier
-          )
-        case 'dueAt':
-          return (new Date(left.dueAt).getTime() - new Date(right.dueAt).getTime()) * multiplier
-        case 'returnedAt': {
-          const leftTime = left.returnedAt ? new Date(left.returnedAt).getTime() : Number.NEGATIVE_INFINITY
-          const rightTime = right.returnedAt ? new Date(right.returnedAt).getTime() : Number.NEGATIVE_INFINITY
-          return (leftTime - rightTime) * multiplier
-        }
-        case 'checkedOutAt':
-        default:
-          return (
-            (new Date(left.checkedOutAt).getTime() - new Date(right.checkedOutAt).getTime()) *
-            multiplier
-          )
-      }
-    })
-
-    return result
+    return sortCheckouts(result, sortField, sortDirection, language)
   }, [checkouts, language, searchQuery, sortDirection, sortField, statusFilter, warningFilter])
 
   function resetFilters() {
@@ -202,74 +120,22 @@ function AllCheckoutsPage() {
     })
   }
 
-  function renderSortableHeading(field: CheckoutSortField, label: string) {
-    const isActive = sortField === field
-    const icon = !isActive ? '↕' : sortDirection === 'asc' ? '↑' : '↓'
-    const sortStateLabel = !isActive
-      ? t.common.sortNotSorted
-      : sortDirection === 'asc'
-        ? t.common.sortAscending
-        : t.common.sortDescending
-
+  function renderSortableHeading(field: AllCheckoutsSortField, label: string) {
     return (
-      <button
-        type="button"
-        className="data-list__sort-button"
-        onClick={() => toggleSortSearchParams(setSearchParams, 'sort', 'dir', field, field === 'checkedOutAt' ? 'desc' : 'asc')}
-      >
-        <span>{label}</span>
-        <span className="data-list__sort-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span className="visually-hidden">{sortStateLabel}</span>
-      </button>
-    )
-  }
-
-  function renderEquipmentMedia(imageUrl: string | null | undefined, name: string) {
-    return (
-      <div className="equipment-card__media">
-        <ProtectedAssetImage
-          imageUrl={imageUrl}
-          alt={name}
-          className="equipment-card__image"
-          placeholderClassName="equipment-card__image-placeholder"
-          placeholderText={t.common.noImage}
-        />
-      </div>
-    )
-  }
-
-  function renderCheckoutViewSwitch() {
-    return (
-      <div className="view-switch" role="group" aria-label={t.common.view}>
-        <button
-          type="button"
-          className={`view-switch__button ${
-            checkoutView === 'cards' ? 'view-switch__button--active' : ''
-          }`}
-          onClick={() =>
-            setMergedSearchParams(setSearchParams, {
-              view: 'cards',
-            })
-          }
-        >
-          {t.common.cardsView}
-        </button>
-        <button
-          type="button"
-          className={`view-switch__button ${
-            checkoutView === 'list' ? 'view-switch__button--active' : ''
-          }`}
-          onClick={() =>
-            setMergedSearchParams(setSearchParams, {
-              view: null,
-            })
-          }
-        >
-          {t.common.listView}
-        </button>
-      </div>
+      <SortableHeading
+        direction={sortDirection}
+        isActive={sortField === field}
+        label={label}
+        onSort={() =>
+          toggleSortSearchParams(
+            setSearchParams,
+            'sort',
+            'dir',
+            field,
+            field === 'checkedOutAt' ? 'desc' : 'asc',
+          )
+        }
+      />
     )
   }
 
@@ -289,23 +155,7 @@ function AllCheckoutsPage() {
     <div className="page-shell">
       <section className="page-hero">
         <div className="page-hero__content">
-          <span className="page-kicker">{t.checkouts.allHeroKicker}</span>
-          <h1 className="page-title">{t.checkouts.allHeroTitle}</h1>
-          <p className="page-subtitle">{t.checkouts.allHeroText}</p>
-        </div>
-
-        <div className="page-hero__panel">
-          <span className="page-hero__panel-label">{t.checkouts.activeState}</span>
-          <strong className="page-hero__panel-value">
-            {activeCount} {t.checkouts.openCount}
-          </strong>
-          <p className="page-hero__panel-text">
-            {overdueCount > 0
-              ? overdueCount === 1
-                ? t.checkouts.overdueSummarySingle
-                : t.checkouts.overdueSummary(overdueCount)
-              : t.checkouts.noOverdue}
-          </p>
+          <h1 className="page-title">{t.checkouts.allPageTitle}</h1>
         </div>
       </section>
 
@@ -313,56 +163,68 @@ function AllCheckoutsPage() {
         <article className="stat-card">
           <span className="stat-card__label">{t.checkouts.active}</span>
           <strong className="stat-card__value">{activeCount}</strong>
-          <span className="stat-card__note">{t.checkouts.activeNote}</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">{t.checkouts.overdue}</span>
           <strong className="stat-card__value">{overdueCount}</strong>
-          <span className="stat-card__note">{t.checkouts.overdueNote}</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">{t.checkouts.closed}</span>
           <strong className="stat-card__value">{returnedCount}</strong>
-          <span className="stat-card__note">{t.checkouts.closedNote}</span>
         </article>
       </section>
 
       <section className="inventory-stack">
-        <div className="section-heading section-heading--toolbar">
-          <div>
-            <span className="section-heading__eyebrow">{t.checkouts.allHeroKicker}</span>
-            <h2 className="section-heading__title">{t.checkouts.allHeroTitle}</h2>
-          </div>
-          <div className="section-heading__aside">
-            <p className="section-heading__text">{t.checkouts.allHeroText}</p>
-            {renderCheckoutViewSwitch()}
-          </div>
-        </div>
-
-        <CheckoutLogFilters
-          checkoutCount={checkouts.length}
+        <FilterPanel
           filteredCount={filteredCheckouts.length}
+          layout="checkout-log"
           onReset={resetFilters}
           onSearchChange={(value) =>
-            setMergedSearchParams(setSearchParams, {
-              search: value.trim() ? value : null,
-            })
+            setMergedSearchParams(setSearchParams, { search: value.trim() ? value : null })
           }
-          onStateChange={(value) =>
-            setMergedSearchParams(setSearchParams, {
-              state: value === 'all' ? null : value,
-              warning: value === 'active' ? searchParams.get('warning') : null,
-            })
+          searchId="all-checkouts-search"
+          searchPlaceholder={t.checkouts.allSearchPlaceholder}
+          searchValue={searchQuery}
+          totalCount={checkouts.length}
+          viewSwitch={
+            <ViewSwitch
+              value={checkoutView}
+              onChange={(view) =>
+                setMergedSearchParams(setSearchParams, { view: view === 'cards' ? view : null })
+              }
+            />
           }
-          onWarningChange={(value) =>
-            setMergedSearchParams(setSearchParams, {
-              warning: value === 'all' ? null : value,
-            })
-          }
-          searchQuery={searchQuery}
-          stateFilter={statusFilter}
-          warningFilter={warningFilter}
-        />
+        >
+          <div className="form-field">
+            <label className="visually-hidden" htmlFor="all-checkouts-status-filter">
+              {t.checkouts.statusFilterLabel}
+            </label>
+            <select
+              id="all-checkouts-status-filter"
+              value={statusFilter}
+              onChange={(event) =>
+                setMergedSearchParams(setSearchParams, {
+                  state: event.target.value === 'all' ? null : event.target.value,
+                  warning: event.target.value === 'active' ? searchParams.get('warning') : null,
+                })
+              }
+            >
+              <option value="all">{t.checkouts.filterAll}</option>
+              <option value="active">{t.checkouts.filterActive}</option>
+              <option value="closed">{t.checkouts.filterClosed}</option>
+            </select>
+          </div>
+
+          {statusFilter === 'active' && (
+            <WarningFilterSelect
+              id="all-checkouts-warning-filter"
+              value={warningFilter}
+              onChange={(value) =>
+                setMergedSearchParams(setSearchParams, { warning: value === 'all' ? null : value })
+              }
+            />
+          )}
+        </FilterPanel>
 
         {checkouts.length === 0 ? (
           <div className="empty-state">
@@ -385,67 +247,34 @@ function AllCheckoutsPage() {
               <span className="data-list__heading">{renderSortableHeading('returnedAt', t.checkouts.returnedAt)}</span>
             </div>
 
-            {filteredCheckouts.map((checkout) => {
-              const overdue = isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)
-              const timelineState = getCheckoutTimelineState(checkout)
+            <div className="data-list__body">
+              {filteredCheckouts.map((checkout) => {
+                const warning = getCheckoutWarning(checkout.dueAt, checkout.returnedAt)
 
-              return (
-                <article
-                  key={checkout.id}
-                  className={`data-list__row ${overdue ? 'data-list__row--overdue' : ''}`}
-                >
-                  <div className="data-list__cell data-list__cell--primary">
-                    <div className="data-list__asset">
-                      <div className="data-list__thumb">
-                        <ProtectedAssetImage
-                          imageUrl={checkout.equipment.imageUrl}
-                          alt={checkout.equipment.name}
-                          className="data-list__thumb-image"
-                          placeholderClassName="data-list__thumb-placeholder"
-                          placeholderText={t.common.noImage}
-                        />
-                      </div>
+                return (
+                  <article
+                    key={checkout.id}
+                    className={`data-list__row ${warning === 'overdue' ? 'data-list__row--overdue' : ''}`}
+                  >
+                    <AssetCell
+                      asset={checkout.equipment}
+                      secondaryText={`${checkout.equipment.category} SN ${checkout.equipment.serialNumber}`}
+                      tertiaryText={checkout.note}
+                      warning={warning}
+                    />
 
-                      <div className="data-list__asset-copy">
-                        <div className="data-list__title-row">
-                          <Link
-                            to={`/equipment/${checkout.equipment.id}`}
-                            className="context-link"
-                          >
-                            <strong className="data-list__primary-text context-link__primary">
-                              {checkout.equipment.name}
-                            </strong>
-                          </Link>
-                          {timelineState && (
-                            <span className={timelineState.alertClass}>
-                              {timelineState.alertLabel === 'overdue'
-                                ? t.checkouts.overdueBadge
-                                : t.checkouts.dueSoonBadge}
-                            </span>
-                          )}
-                        </div>
-                        <span className="data-list__secondary-text">
-                          {checkout.equipment.category} SN {checkout.equipment.serialNumber}
-                        </span>
-                        <span className="data-list__tertiary-text">
-                          {checkout.note || t.checkouts.noNote}
-                        </span>
-                      </div>
+                    <div className="data-list__cell">
+                      <span className="data-list__mobile-label">{t.common.user}</span>
+                      <Link
+                        to={`/users/${checkout.user.id}`}
+                        className="context-link context-link--stack"
+                      >
+                        <strong className="data-list__context-name context-link__primary">
+                          {checkout.user.name}
+                        </strong>
+                      </Link>
+                      <span className="data-list__context-value">{checkout.user.email}</span>
                     </div>
-                  </div>
-
-                  <div className="data-list__cell">
-                    <span className="data-list__mobile-label">{t.common.user}</span>
-                    <Link
-                      to={`/users/${checkout.user.id}`}
-                      className="context-link context-link--stack"
-                    >
-                      <strong className="data-list__context-name context-link__primary">
-                        {checkout.user.name}
-                      </strong>
-                    </Link>
-                    <span className="data-list__context-value">{checkout.user.email}</span>
-                  </div>
 
                     <div className="data-list__cell">
                       <span className="data-list__mobile-label">{t.common.status}</span>
@@ -456,142 +285,44 @@ function AllCheckoutsPage() {
                       </div>
                     </div>
 
-                  <div className="data-list__cell">
-                    <span className="data-list__mobile-label">
-                      {t.checkouts.checkedOutAt}
-                    </span>
-                    <span className="data-list__value">
-                      {formatDateTime(checkout.checkedOutAt, language)}
-                    </span>
-                  </div>
+                    <div className="data-list__cell">
+                      <span className="data-list__mobile-label">
+                        {t.checkouts.checkedOutAt}
+                      </span>
+                      <span className="data-list__value">
+                        <DateTimeValue value={checkout.checkedOutAt} />
+                      </span>
+                    </div>
 
-                  <div className="data-list__cell">
-                    <span className="data-list__mobile-label">{t.checkouts.dueAt}</span>
-                    <span className="data-list__value">
-                      {formatDateTime(checkout.dueAt, language)}
-                    </span>
-                  </div>
+                    <div className="data-list__cell">
+                      <span className="data-list__mobile-label">{t.checkouts.dueAt}</span>
+                      <span
+                        className={`data-list__value ${warning === 'overdue' ? 'data-list__value--danger' : ''}`}
+                      >
+                        <DateTimeValue value={checkout.dueAt} />
+                      </span>
+                    </div>
 
-                  <div className="data-list__cell">
-                    <span className="data-list__mobile-label">{t.checkouts.returnedAt}</span>
-                    <span className="data-list__value">
-                      {checkout.returnedAt
-                        ? formatDateTime(checkout.returnedAt, language)
-                        : t.checkouts.notClosed}
-                    </span>
-                  </div>
-                </article>
-              )
-            })}
+                    <div className="data-list__cell">
+                      <span className="data-list__mobile-label">{t.checkouts.returnedAt}</span>
+                      <span className="data-list__value">
+                        {checkout.returnedAt ? (
+                          <DateTimeValue value={checkout.returnedAt} />
+                        ) : (
+                          t.checkouts.notClosed
+                        )}
+                      </span>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           </div>
         ) : (
           <div className="equipment-list">
-            {filteredCheckouts.map((checkout) => {
-              const overdue = isCheckoutOverdue(checkout.dueAt, checkout.returnedAt)
-              const timelineState = getCheckoutTimelineState(checkout)
-
-              return (
-                <article
-                  key={checkout.id}
-                  className={`equipment-card ${overdue ? 'equipment-card--overdue' : ''}`}
-                >
-                  <div className="equipment-card__layout equipment-card__layout--media-first">
-                    {renderEquipmentMedia(
-                      checkout.equipment.imageUrl,
-                      checkout.equipment.name,
-                    )}
-
-                    <div className="equipment-card__main">
-                      <div className="equipment-card__header">
-                        <div className="equipment-card__title-group">
-                          <div className="equipment-card__title-row">
-                            <Link
-                              to={`/equipment/${checkout.equipment.id}`}
-                              className="context-link"
-                            >
-                              <h3 className="equipment-card__title-small context-link__primary">
-                                {checkout.equipment.name}
-                              </h3>
-                            </Link>
-                            {timelineState && (
-                              <span className={timelineState.alertClass}>
-                                {timelineState.alertLabel === 'overdue'
-                                  ? t.checkouts.overdueBadge
-                                  : t.checkouts.dueSoonBadge}
-                              </span>
-                            )}
-                          </div>
-                          <span className="equipment-card__serial">
-                            SN {checkout.equipment.serialNumber}
-                          </span>
-                          <div className="equipment-card__signal-row">
-                            <span className="equipment-category-chip">
-                              {checkout.equipment.category}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="equipment-card__status-stack">
-                          <span className={getStatusBadgeClass(checkout.equipment.status)}>
-                            {getStatusLabel(checkout.equipment.status, language)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="inventory-status-context">
-                        <span className="inventory-status-context__label">
-                          {t.common.user}
-                        </span>
-                        <Link to={`/users/${checkout.user.id}`} className="context-link">
-                          <strong className="inventory-status-context__value context-link__primary">
-                            {checkout.user.name}
-                          </strong>
-                        </Link>
-                        <span className="inventory-status-context__meta">
-                          {checkout.user.email}
-                        </span>
-                      </div>
-
-                      <div className="equipment-meta">
-                        <div className="equipment-meta__item">
-                          <span className="equipment-meta__label">
-                            {t.checkouts.checkedOutAt}
-                          </span>
-                          <span className="equipment-meta__value">
-                            {formatDateTime(checkout.checkedOutAt, language)}
-                          </span>
-                        </div>
-
-                        <div className="equipment-meta__item">
-                          <span className="equipment-meta__label">{t.checkouts.dueAt}</span>
-                          <span className="equipment-meta__value">
-                            {formatDateTime(checkout.dueAt, language)}
-                          </span>
-                        </div>
-
-                        <div className="equipment-meta__item">
-                          <span className="equipment-meta__label">{t.checkouts.returnedAt}</span>
-                          <span className="equipment-meta__value">
-                            {checkout.returnedAt
-                              ? formatDateTime(checkout.returnedAt, language)
-                              : t.checkouts.notClosed}
-                          </span>
-                        </div>
-                      </div>
-
-                      {checkout.note && (
-                        <div className="equipment-description">
-                          <span className="equipment-description__label">
-                            {t.checkouts.note}
-                          </span>
-                          <p className="equipment-description__text">{checkout.note}</p>
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
+            {filteredCheckouts.map((checkout) => (
+              <CheckoutCard key={checkout.id} checkout={checkout} showReturned showUser />
+            ))}
           </div>
         )}
       </section>

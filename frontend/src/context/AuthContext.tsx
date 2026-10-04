@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { login as loginRequest } from '../api/authApi'
 import type { AuthUser, LoginRequest } from '../types/auth'
-import { setForbiddenHandler, setUnauthorizedHandler } from '../api/axios'
+import { setForbiddenHandler, setUnauthorizedHandler } from '../api/client'
 import {
   getStoredUser,
   getToken,

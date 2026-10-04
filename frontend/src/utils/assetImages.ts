@@ -1,4 +1,4 @@
-import { API_ORIGIN } from '../api/axios'
+import { API_ORIGIN } from '../api/client'
 
 export function resolveAssetImageUrl(imageUrl: string | null | undefined) {
   if (!imageUrl) {

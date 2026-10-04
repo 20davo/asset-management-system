@@ -5,7 +5,6 @@ import { useLanguage } from './context/LanguageContext'
 import Navbar from './components/layout/Navbar'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import AllCheckoutsPage from './pages/AllCheckoutsPage'
-import ChangePasswordPage from './pages/ChangePasswordPage'
 import EquipmentDetailsPage from './pages/EquipmentDetailsPage'
 import EquipmentListPage from './pages/EquipmentListPage'
 import LoginPage from './pages/LoginPage'
@@ -115,11 +114,7 @@ function AppRoutes() {
       />
       <Route
         path="/profile/security"
-        element={
-          <ProtectedRoute>
-            <ChangePasswordPage />
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/profile" replace />}
       />
       <Route
         path="/my-checkouts"
