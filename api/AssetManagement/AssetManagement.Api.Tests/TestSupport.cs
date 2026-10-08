@@ -51,7 +51,7 @@ internal static class TestSupport
 
     public static EquipmentController CreateEquipmentController(AppDbContext context)
     {
-        var imageService = new EquipmentImageService(new TestWebHostEnvironment());
+        var imageService = new EquipmentImageService(new TestWebHostEnvironment(), CreateConfiguration());
         var equipmentService = new EquipmentService(context, imageService);
 
         return new EquipmentController(equipmentService, imageService);

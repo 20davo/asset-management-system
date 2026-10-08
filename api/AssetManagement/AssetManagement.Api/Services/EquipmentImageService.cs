@@ -34,10 +34,12 @@ namespace AssetManagement.Api.Services
         };
 
         private readonly IWebHostEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
-        public EquipmentImageService(IWebHostEnvironment environment)
+        public EquipmentImageService(IWebHostEnvironment environment, IConfiguration configuration)
         {
             _environment = environment;
+            _configuration = configuration;
         }
 
         public async Task<ServiceResult?> ValidateImageAsync(IFormFile? image)
@@ -154,14 +156,21 @@ namespace AssetManagement.Api.Services
 
         private string GetEquipmentUploadDirectory()
         {
-            var webRootPath = _environment.WebRootPath;
+            var uploadsRootPath = _configuration["Storage:UploadsPath"];
 
-            if (string.IsNullOrWhiteSpace(webRootPath))
+            if (string.IsNullOrWhiteSpace(uploadsRootPath))
             {
-                webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+                var webRootPath = _environment.WebRootPath;
+
+                if (string.IsNullOrWhiteSpace(webRootPath))
+                {
+                    webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+                }
+
+                uploadsRootPath = Path.Combine(webRootPath, "uploads");
             }
 
-            return Path.Combine(webRootPath, "uploads", "equipment");
+            return Path.Combine(uploadsRootPath, "equipment");
         }
 
         private static async Task<bool> HasAllowedImageSignatureAsync(IFormFile image, string extension)
