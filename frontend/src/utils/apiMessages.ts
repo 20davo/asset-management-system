@@ -205,6 +205,10 @@ const apiMessages = {
     en: 'User and related records deleted.',
     hu: 'A felhasználó és a hozzá tartozó rekordok törölve lettek.',
   },
+  'demo.accountProtected': {
+    en: 'Demo accounts cannot be changed or deleted.',
+    hu: 'A demo fiókok nem módosíthatók és nem törölhetők.',
+  },
 } as const
 
 export type ApiMessageCode = keyof typeof apiMessages

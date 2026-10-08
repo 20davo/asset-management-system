@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import authLoginImage from '../assets/auth-login.webp'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
 import { useAuth } from '../context/AuthContext'
-import { REGISTRATION_ENABLED } from '../config/featureFlags'
+import { DEMO_ACCOUNTS, DEMO_MODE, REGISTRATION_ENABLED } from '../config/featureFlags'
 import { useLanguage } from '../context/LanguageContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 
@@ -44,13 +44,24 @@ function LoginPage() {
     }))
   }
 
+  async function signInWithDemoAccount(email: string) {
+    const credentials = { email, password: DEMO_ACCOUNTS.password }
+
+    setFormData(credentials)
+    await signIn(credentials)
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    await signIn(formData)
+  }
+
+  async function signIn(credentials: { email: string; password: string }) {
     setErrorMessage('')
     setIsSubmitting(true)
 
     try {
-      await login(formData)
+      await login(credentials)
       navigate('/')
     } catch (error: unknown) {
       setErrorMessage(getApiErrorMessage(error, t.auth.loginError, language))
@@ -185,6 +196,30 @@ function LoginPage() {
             {isSubmitting ? t.auth.loginSubmitting : t.auth.loginSubmit}
           </button>
         </form>
+
+        {DEMO_MODE && (
+          <div className="demo-login">
+            <p className="demo-login__divider">{t.auth.demoDivider}</p>
+            <div className="demo-login__buttons">
+              <button
+                type="button"
+                className="button-secondary button-form"
+                disabled={isSubmitting}
+                onClick={() => signInWithDemoAccount(DEMO_ACCOUNTS.adminEmail)}
+              >
+                {t.auth.demoAdmin}
+              </button>
+              <button
+                type="button"
+                className="button-secondary button-form"
+                disabled={isSubmitting}
+                onClick={() => signInWithDemoAccount(DEMO_ACCOUNTS.userEmail)}
+              >
+                {t.auth.demoUser}
+              </button>
+            </div>
+          </div>
+        )}
 
         {REGISTRATION_ENABLED && (
           <p className="auth-page__footer">

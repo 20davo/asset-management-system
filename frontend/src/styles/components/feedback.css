@@ -1,5 +1,6 @@
 .form-error,
-.form-success {
+.form-success,
+.form-info {
   padding: 14px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
@@ -15,6 +16,12 @@
   background: color-mix(in srgb, var(--success-soft) 78%, rgba(var(--background-rgb), 0.92));
   border-color: color-mix(in srgb, var(--success-text) 24%, transparent);
   color: var(--success-text);
+}
+
+.form-info {
+  background: color-mix(in srgb, var(--warning-soft) 78%, rgba(var(--background-rgb), 0.92));
+  border-color: color-mix(in srgb, var(--warning-text) 24%, transparent);
+  color: var(--warning-text);
 }
 
 .floating-feedback {
