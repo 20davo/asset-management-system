@@ -44,6 +44,11 @@ export const hu = {
       registerSubmitting: 'Fiók létrehozása...',
       invalidEmail: 'Adj meg egy érvényes email címet.',
       registerError: 'Sikertelen regisztráció.',
+      demoDivider: 'vagy próbálj ki egy demo fiókot',
+      demoAdmin: 'Demo admin',
+      demoUser: 'Demo felhasználó',
+      demoRegisterNote:
+        'Minden adat naponta törlődik.',
       noAccount: 'Még nincs fiókod?',
       registerHere: 'Regisztrálj itt.',
       hasAccount: 'Már van fiókod?',
@@ -275,6 +280,9 @@ export const hu = {
       saveInProgress: 'Mentés...',
       close: 'Bezárás',
       forbidden: 'Nincs jogosultságod az adott oldal vagy művelet eléréséhez.',
+      serverWaking: 'A demó szerver éppen ébredezik.. ez akár fél percig is tarthat.',
+      serverUnreachable:
+        'A demó szerver jelenleg nem érhető el. Lehet, hogy épp indul, vagy elfogyott a napi felhasználható ingyenes keret (éjfélkor, UTC szerint újraindul).',
       unknownDate: 'Ismeretlen dátum',
       unknownDateTime: 'Ismeretlen időpont',
       me: 'Én',

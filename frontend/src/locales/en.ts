@@ -44,6 +44,11 @@ export const en = {
       registerSubmitting: 'Signing up...',
       invalidEmail: 'Enter a valid email address.',
       registerError: 'Sign-up failed.',
+      demoDivider: 'or try a demo account',
+      demoAdmin: 'Demo admin',
+      demoUser: 'Demo user',
+      demoRegisterNote:
+        'All data is reset daily.',
       noAccount: 'No account yet?',
       registerHere: 'Sign up here.',
       hasAccount: 'Already have an account?',
@@ -275,6 +280,9 @@ export const en = {
       saveInProgress: 'Saving...',
       close: 'Close',
       forbidden: 'You do not have permission to access that action or page.',
+      serverWaking: 'The demo server is waking up.. This can take up to half a minute.',
+      serverUnreachable:
+        'The demo server cannot be reached right now. It may be starting, or its free daily limit may be used up (it resets at midnight UTC).',
       unknownDate: 'Unknown date',
       unknownDateTime: 'Unknown date and time',
       me: 'Me',

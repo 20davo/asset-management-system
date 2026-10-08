@@ -20,3 +20,11 @@ export const REGISTRATION_ENABLED = readBooleanFlag(
   import.meta.env.VITE_REGISTRATION_ENABLED,
   true,
 )
+
+export const DEMO_MODE = readBooleanFlag(import.meta.env.VITE_DEMO_MODE, false)
+
+export const DEMO_ACCOUNTS = {
+  adminEmail: import.meta.env.VITE_DEMO_ADMIN_EMAIL?.trim() ?? '',
+  userEmail: import.meta.env.VITE_DEMO_USER_EMAIL?.trim() ?? '',
+  password: import.meta.env.VITE_DEMO_PASSWORD?.trim() ?? '',
+}

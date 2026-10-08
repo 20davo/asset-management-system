@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { useAuth } from './context/AuthContext'
 import { useLanguage } from './context/LanguageContext'
 import Navbar from './components/layout/Navbar'
+import { ConnectionNotice } from './components/shared/ConnectionNotice'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import AllCheckoutsPage from './pages/AllCheckoutsPage'
 import EquipmentDetailsPage from './pages/EquipmentDetailsPage'
@@ -160,6 +161,7 @@ function App() {
         <Navbar />
 
         <main className="app">
+          <ConnectionNotice />
           <AppNotice />
           <AppRoutes />
         </main>

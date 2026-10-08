@@ -1,7 +1,10 @@
 import axios from 'axios'
+import { DEMO_MODE } from '../config/featureFlags'
 import { getToken } from '../utils/tokenStorage'
+import { setConnectionStatus } from './connectionStatus'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:5071/api'
+const SLOW_REQUEST_MS = 3000
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 const absoluteUrlPattern = /^https?:\/\//i
 let unauthorizedHandler: (() => void) | null = null
@@ -22,6 +25,46 @@ export const API_ORIGIN = absoluteUrlPattern.test(API_BASE_URL)
 const api = axios.create({
   baseURL: API_BASE_URL,
 })
+
+const slowRequestTimers = new WeakMap<object, number>()
+const slowRequests = new WeakSet<object>()
+let slowRequestCount = 0
+
+function startSlowRequestTimer(config: object) {
+  if (!DEMO_MODE) {
+    return
+  }
+
+  const timer = window.setTimeout(() => {
+    slowRequests.add(config)
+    slowRequestCount += 1
+    setConnectionStatus('waking')
+  }, SLOW_REQUEST_MS)
+
+  slowRequestTimers.set(config, timer)
+}
+
+function finishRequest(config: object | undefined, reachedServer: boolean) {
+  if (!DEMO_MODE || !config) {
+    return
+  }
+
+  window.clearTimeout(slowRequestTimers.get(config))
+  slowRequestTimers.delete(config)
+
+  if (slowRequests.delete(config)) {
+    slowRequestCount -= 1
+  }
+
+  if (!reachedServer) {
+    setConnectionStatus('unreachable')
+    return
+  }
+
+  if (slowRequestCount === 0) {
+    setConnectionStatus('ok')
+  }
+}
 
 function isAuthRequest(url: string | undefined) {
   if (!url) {
@@ -62,13 +105,21 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
 
+  startSlowRequestTimer(config)
+
   return config
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    finishRequest(response.config, true)
+
+    return response
+  },
   (error) => {
     if (axios.isAxiosError(error)) {
+      finishRequest(error.config, Boolean(error.response) || axios.isCancel(error))
+
       if (error.response?.status === 401) {
         handleUnauthorizedResponse(error.config?.url)
       }

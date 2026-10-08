@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../api/authApi'
 import authRegistrationImage from '../assets/auth-registration.webp'
 import { FeedbackMessage } from '../components/shared/FeedbackMessage'
+import { DEMO_MODE } from '../config/featureFlags'
 import { useLanguage } from '../context/LanguageContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { getApiMessage } from '../utils/apiMessages'
@@ -86,6 +87,8 @@ function RegisterPage() {
           <h2 className="section-heading__title">{t.auth.registerTitle}</h2>
           <p className="section-heading__text">{t.auth.registerText}</p>
         </div>
+
+        {DEMO_MODE && <p className="form-info">{t.auth.demoRegisterNote}</p>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-field">
