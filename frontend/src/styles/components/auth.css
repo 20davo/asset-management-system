@@ -67,8 +67,16 @@
 
 .auth-page .auth-form {
   width: 100%;
-  gap: var(--space-3);
+  gap: 15px;
   margin-top: var(--space-1);
+}
+
+.auth-page .form-field {
+  gap: 5px;
+}
+
+.auth-page .form-field label {
+  font-size: var(--text-base);
 }
 
 .auth-page .auth-form .form-field + .form-field {
