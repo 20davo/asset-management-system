@@ -22,11 +22,13 @@ namespace AssetManagement.Api.Services
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IDemoAccountPolicy _demoAccountPolicy;
 
-        public AuthService(AppDbContext context, IConfiguration configuration)
+        public AuthService(AppDbContext context, IConfiguration configuration, IDemoAccountPolicy demoAccountPolicy)
         {
             _context = context;
             _configuration = configuration;
+            _demoAccountPolicy = demoAccountPolicy;
         }
 
         public async Task<ServiceResult> RegisterAsync(RegisterDto dto)
@@ -123,6 +125,11 @@ namespace AssetManagement.Api.Services
             if (user == null)
             {
                 return ServiceResult.Unauthorized("auth.userNotFound", "User not found.");
+            }
+
+            if (_demoAccountPolicy.IsProtected(user.Email))
+            {
+                return ServiceResult.BadRequest("demo.accountProtected", "This account is protected from changes.");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))

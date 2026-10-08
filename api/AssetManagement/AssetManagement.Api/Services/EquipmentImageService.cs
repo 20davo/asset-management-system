@@ -12,6 +12,7 @@ namespace AssetManagement.Api.Services
         string GetImageFilePath(string fileName);
         string GetContentType(string fileName);
         void EnsureUploadDirectoryExists();
+        string GetEquipmentUploadDirectory();
     }
 
     public class EquipmentImageService : IEquipmentImageService
@@ -154,7 +155,7 @@ namespace AssetManagement.Api.Services
             Directory.CreateDirectory(GetEquipmentUploadDirectory());
         }
 
-        private string GetEquipmentUploadDirectory()
+        public string GetEquipmentUploadDirectory()
         {
             var uploadsRootPath = _configuration["Storage:UploadsPath"];
 
