@@ -24,6 +24,8 @@ namespace AssetManagement.Api.Extensions
             services.AddScoped<IEquipmentImageService, EquipmentImageService>();
             services.AddScoped<IEquipmentService, EquipmentService>();
             services.AddScoped<IUserManagementService, UserManagementService>();
+            services.AddScoped<IDemoSeeder, DemoSeeder>();
+            services.AddSingleton<IDemoAccountPolicy, DemoAccountPolicy>();
 
             return services;
         }

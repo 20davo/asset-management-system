@@ -19,10 +19,12 @@ namespace AssetManagement.Api.Services
     public class UserManagementService : IUserManagementService
     {
         private readonly AppDbContext _context;
+        private readonly IDemoAccountPolicy _demoAccountPolicy;
 
-        public UserManagementService(AppDbContext context)
+        public UserManagementService(AppDbContext context, IDemoAccountPolicy demoAccountPolicy)
         {
             _context = context;
+            _demoAccountPolicy = demoAccountPolicy;
         }
 
         public async Task<List<UserSummaryDto>> GetAllAsync()
@@ -65,6 +67,11 @@ namespace AssetManagement.Api.Services
             if (user == null)
             {
                 return ServiceResult.NotFound("user.notFound", "User not found.");
+            }
+
+            if (_demoAccountPolicy.IsProtected(user.Email))
+            {
+                return ServiceResult.BadRequest("demo.accountProtected", "This account is protected from changes.");
             }
 
             if (hasCurrentAdminId && currentAdminId == id && user.Role == UserRoles.Admin && normalizedRole != UserRoles.Admin)
@@ -122,6 +129,11 @@ namespace AssetManagement.Api.Services
             if (user == null)
             {
                 return ServiceResult.NotFound("user.notFound", "User not found.");
+            }
+
+            if (_demoAccountPolicy.IsProtected(user.Email))
+            {
+                return ServiceResult.BadRequest("demo.accountProtected", "This account is protected from changes.");
             }
 
             if (user.Role == UserRoles.Admin)

@@ -41,6 +41,8 @@ namespace AssetManagement.Api.Controllers
                 return NotFound();
             }
 
+            Response.Headers.CacheControl = "private, max-age=86400, immutable";
+
             return PhysicalFile(filePath, _imageService.GetContentType(fileName));
         }
 

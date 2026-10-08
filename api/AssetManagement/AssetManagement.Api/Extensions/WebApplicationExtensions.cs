@@ -16,6 +16,14 @@ namespace AssetManagement.Api.Extensions
             imageService.EnsureUploadDirectoryExists();
         }
 
+        public static void ApplyDemoReset(this WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var demoSeeder = scope.ServiceProvider.GetRequiredService<IDemoSeeder>();
+
+            demoSeeder.ResetIfDue();
+        }
+
         public static void ApplyMigrationsAndBootstrapAdmin(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();

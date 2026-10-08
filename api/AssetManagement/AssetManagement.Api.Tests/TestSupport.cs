@@ -59,7 +59,7 @@ internal static class TestSupport
 
     public static UsersController CreateUsersController(AppDbContext context)
     {
-        return new UsersController(new UserManagementService(context));
+        return new UsersController(new UserManagementService(context, new DemoAccountPolicy(CreateConfiguration())));
     }
 
     public static CheckoutController CreateCheckoutController(AppDbContext context)
@@ -69,7 +69,7 @@ internal static class TestSupport
 
     public static AuthController CreateAuthController(AppDbContext context, IConfiguration configuration)
     {
-        return new AuthController(new AuthService(context, configuration));
+        return new AuthController(new AuthService(context, configuration, new DemoAccountPolicy(configuration)));
     }
 }
 

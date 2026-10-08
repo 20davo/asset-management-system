@@ -26,8 +26,9 @@ namespace AssetManagement.Api
 
             app.EnsureEquipmentUploadDirectory();
             app.ApplyMigrationsAndBootstrapAdmin();
+            app.ApplyDemoReset();
 
-            if (app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled"))
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
