@@ -8,7 +8,13 @@ namespace AssetManagement.Api.Extensions
 {
     public static class AuthenticationExtensions
     {
-        private const string JwtPlaceholderValue = "replace-with-a-long-random-secret-key";
+        private const int MinimumJwtKeyBytes = 32;
+
+        private static readonly HashSet<string> JwtPlaceholderValues = new(StringComparer.Ordinal)
+        {
+            "replace-with-a-long-random-secret-key",
+            "change-this-to-a-real-random-secret"
+        };
 
         public static IServiceCollection AddAppAuthentication(
             this IServiceCollection services,
@@ -18,10 +24,16 @@ namespace AssetManagement.Api.Extensions
             var jwtIssuer = configuration["Jwt:Issuer"];
             var jwtAudience = configuration["Jwt:Audience"];
 
-            if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey == JwtPlaceholderValue)
+            if (string.IsNullOrWhiteSpace(jwtKey) || JwtPlaceholderValues.Contains(jwtKey))
             {
                 throw new InvalidOperationException(
                     "Jwt:Key must be configured with a real secret value before the application starts.");
+            }
+
+            if (Encoding.UTF8.GetByteCount(jwtKey) < MinimumJwtKeyBytes)
+            {
+                throw new InvalidOperationException(
+                    $"Jwt:Key must be at least {MinimumJwtKeyBytes} bytes long.");
             }
 
             services.AddAuthentication(options =>
