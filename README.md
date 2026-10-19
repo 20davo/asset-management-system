@@ -9,14 +9,25 @@
 
 This full-stack portfolio project is designed for smaller IT teams as an internal asset tracker. It is meant for those who have outgrown spreadsheets but do not need a full enterprise tool.
 
-## Screenshots
+## Demo
+
+You can try the app in a [demo environment](https://www.assetmanagement-demo.hu), which is deployed on Azure.
+
+To sign in quickly, use the **Demo admin** or **Demo user** accounts. You can also create your own account.
+
+A few things to know:
+
+- All data is sample data, and it is reset daily.
+- The demo accounts cannot be changed or deleted.
+- The demo runs on free tiers. After some idle time, the first request can take a few seconds while the server wakes up.
+- If the free daily limits are used up, the API is unavailable until midnight UTC.
 
 | Login | Inventory |
 | --- | --- |
 | ![Login page](./docs/screenshots/v3/login.png) | ![Inventory page](./docs/screenshots/v3/inventory.png) |
 
 <details>
-<summary>More screenshots (asset details, user management, user details, profile)</summary>
+<summary>More pages</summary>
 
 ![Asset details page](./docs/screenshots/v3/asset_details.png)
 
@@ -30,124 +41,60 @@ This full-stack portfolio project is designed for smaller IT teams as an interna
 
 ## Features
 
-- JWT login with rate limiting and two roles (admin and regular user)
-- Self-registration for regular users, which can be turned off per environment
-- Search, filters, due-date warnings, card and list views, and sortable columns across the app's lists
-- Checkout and return flow with due dates, notes, and assignment history
-- Admin tools for creating, editing, and deleting assets, moving them in and out of maintenance, and assigning them to users
-- An assignment log for admins with filters
-- User management with role editing, and a page for each user with their current assets and past assignments
-- A `My Items` page where users see their active and returned assets
-- Equipment photos, visible only to signed-in users
-- Bilingual UI (English and Hungarian) with light and dark themes
-
-## Engineering highlights
-
-Some parts of the codebase that go beyond basic CRUD:
-
-- **Every checkout is saved as its own record.** Each record keeps the due date and the return date, so past assignments stay visible. A partial unique index allows only one open checkout per asset, so two users cannot take the same asset at the same time. An integration test checks this in CI by sending two checkout requests at once, with a real PostgreSQL database behind the API.
-- **Old sessions end right away.** On each request, the API checks the role and token version against the database, so after a role change, a password change, or account deletion, old tokens stop working. This costs one extra database query per request.
-- **Images stay private.** Uploads are checked by their real file type (magic bytes), and only signed-in users can see them. The frontend loads each image with the token and shows it as a blob, because an `<img>` tag cannot send a token.
-- **Status changes have their own endpoints.** The general update endpoint cannot change an asset's status. Checkout, return, and maintenance go through separate endpoints, and each one checks whether the change is allowed. For example, a checked-out asset cannot go to maintenance.
-- **Error messages use shared codes.** The API sends a code like `equipment.notAvailableForCheckout` with each error from the services, and the frontend turns it into an English or Hungarian message.
-- **Search and filter settings are saved in the URL.** Search text, filters, sorting, and the card or list layout stay the same after a page refresh, and the same view can be shared as a link.
+- Sign-in with two roles (admin and regular user)
+- Self-registration for regular users (can be disabled per environment)
+- Searching, filtering, and sorting across the app's lists
+- Card and list views on the main list pages
+- List settings (search, filters, sorting, and view) persist after page refresh and can be shared via URL
+- Checkout and return process with due dates and notes, plus assignment history
+- Admin tools for creating, editing, deleting assets, and setting maintenance status
+- An Assignment log page for admins
+- User management for admins, including data and role editing
+- A personal My Items page for users
+- Password change on the Profile page
+- Asset image uploads via create/edit forms
+- Settings for language (English and Hungarian) and theme (light and dark)
 
 ## Architecture
 
+The diagram shows the **demo setup**. The React app runs in the browser and calls the ASP.NET Core REST API. After sign-in, it sends a JWT with every request.
+
 ```mermaid
 flowchart LR
-    B[Browser] -->|"localhost:8080"| N["Nginx<br>serves built React app"]
-    N -->|"/api"| A["ASP.NET Core 10 API"]
-    N -->|"/uploads"| A
-    A --> D[("PostgreSQL 16")]
-    A --> V[/"uploads volume"/]
+    B["Browser<br>React app"] -->|"static files"| S["Azure Static Web Apps"]
+    B -->|"/api"| A["Azure App Service F1<br>API container"]
+    B -->|"/uploads"| A
+    A -->|"app data"| D[("Neon PostgreSQL")]
+    A -->|"image files"| H[/"App Service storage<br>/home"/]
 ```
 
-The diagram shows the **production-like** mode. The development stack has no Nginx. There the Vite dev server runs on port 5173 and calls the API directly on port 5071, with CORS configured for it.
+### Project structure
 
-Each backend request goes through a thin controller to a service layer behind interfaces, which uses EF Core with PostgreSQL. Responses use DTOs, so EF entities never leave the API.
+Each **backend** request goes through a thin controller to a service layer behind interfaces, which uses EF Core with PostgreSQL. The API returns DTOs or short result codes. EF entities are only used inside the API.
+
+The **frontend** uses React Router, and pages that need sign-in are wrapped in a protected route. All `/api` calls go through one Axios client. It adds the token and handles 401 and 403 responses. Auth, language, and theme state are kept in React contexts.
+
+The **data model** has three entities (User, Equipment, Checkout). A checkout record links one user and one equipment item, and it is active while its return date is empty. An item can be *available*, *checked out*, or in *maintenance*.
 
 ```text
 api/AssetManagement/      ASP.NET Core solution (API project and two test projects)
 frontend/                 React + TypeScript app (Vite)
-compose.yaml              development stack
+compose.yaml              local development setup
 compose.prod.yaml         production-like overrides (Nginx, no exposed API/DB ports)
-.github/workflows/ci.yml  CI pipeline
+compose.demo.yaml         demo setup with a separate database
+.github/workflows/ci.yml  CI pipeline with automated tests
+.github/workflows/cd.yml  CD pipeline for manual demo deployment
 ```
 
-## Getting started
+### Demo deployment
 
-You need Docker Desktop (or Docker Engine with Compose).
+The Azure demo runs the API in the `Demo` environment (`appsettings.Demo.json`). In this mode, the API loads sample data, resets it on startup if it is more than a day old, and protects the demo accounts.
 
-```sh
-cp .env.example .env
-docker compose up --build -d
-```
-
-Open `http://localhost:5173`. The example values are ready for local development, including a bootstrap admin account:
-
-- email: `admin@assetmanagement.local`
-- password: `Admin123!`
-
-EF Core migrations run automatically on startup, and the bootstrap admin is created from the `.env` values. Public registration creates regular user accounts only.
-
-### Production-like mode
-
-```sh
-docker compose -f compose.yaml -f compose.prod.yaml up --build -d
-```
-
-Open `http://localhost:8080`. In this mode the frontend is a static build served by Nginx, everything runs on one origin, registration is disabled, and login rate limiting is on.
-
-## Configuration
-
-All settings come from a root `.env` file, documented in [.env.example](./.env.example). The main groups:
-
-- host ports and PostgreSQL credentials
-- JWT key, issuer, and audience (the API does not start without a key, and the example key is for local use only)
-- registration and bootstrap admin switches
-- login rate limit settings
-- CORS origins
-
-Database data, uploaded images, and ASP.NET Data Protection keys live in named Docker volumes, so they are kept when containers are recreated.
-
-## Tests and CI
-
-- **Backend, 22 xUnit tests.** Controller-level tests using an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycle, and user management edge cases such as last-admin protection.
-- **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers. They cover the concurrent checkout race, the duplicate-registration race, and token invalidation on password change. Running them requires Docker.
-- **Frontend, 25 Vitest tests.** API error and message mapping, the success and error message component, the asset form, the page language setting, and a check that the English and Hungarian texts have the same keys. The component tests use Testing Library.
-
-To run the tests locally, you need the .NET 10 SDK and Node.js.
-
-```sh
-# backend
-cd api/AssetManagement && dotnet test
-
-# frontend
-cd frontend && npm ci && npm run test
-```
-
-GitHub Actions runs this pipeline automatically.
-
-```mermaid
----
-title: CI pipeline
----
-%%{init: {"flowchart": {"nodeSpacing": 20}}}%%
-flowchart LR
-    T["Push to main or PR"] --> B1
-    T --> F1
-    subgraph Backend
-        B1["Restore"] --> B2["Build"] --> B3["Unit + integration tests"]
-    end
-    subgraph Frontend
-        F1["npm ci"] --> F2["Lint, 0 warnings"] --> F3["Typecheck"] --> F4["Tests"] --> F5["Build"]
-    end
-```
+The [CD workflow](./.github/workflows/cd.yml) is triggered manually. It builds the API image, pushes it to GitHub Container Registry, and deploys it to Azure App Service. Then it deploys the frontend and runs a short smoke test. The API deployment authenticates with Azure through OpenID Connect (OIDC).
 
 ## API overview
 
-The API serves JSON under `/api` with JWT Bearer authentication, and Swagger UI is available in development mode. In the endpoints, `checkout` means one assignment record of an asset to a user.
+The API serves JSON under `/api` with JWT Bearer authentication. You can try all endpoints in the demo's [Swagger UI](https://ams-demo-api-f6g3hvfudcgaajd2.germanywestcentral-01.azurewebsites.net/swagger), or locally at `http://localhost:5071/swagger`. In the API, `checkout` means an assignment record.
 
 <details>
 <summary>Endpoint reference</summary>
@@ -167,7 +114,7 @@ The API serves JSON under `/api` with JWT Bearer authentication, and Swagger UI 
 | `GET` | `/api/equipment` | Signed-in users | List inventory items |
 | `GET` | `/api/equipment/{id}` | Signed-in users | Get asset details |
 | `POST` | `/api/equipment` | Admin | Create an asset, optionally with an image |
-| `PUT` | `/api/equipment/{id}` | Admin | Update asset details and image |
+| `PUT` | `/api/equipment/{id}` | Admin | Update asset details, and replace or remove the image |
 | `DELETE` | `/api/equipment/{id}` | Admin | Delete an asset if it is not assigned |
 | `POST` | `/api/equipment/{id}/checkout` | Signed-in users | Create an asset assignment |
 | `POST` | `/api/equipment/{id}/return` | Assigned user or admin | Return an asset and close the assignment |
@@ -195,26 +142,69 @@ The API serves JSON under `/api` with JWT Bearer authentication, and Swagger UI 
 
 </details>
 
-Some rules the API checks beyond the access levels above:
+Some rules the API checks beyond the access levels:
 
-- the last admin account cannot be deleted, and admins cannot remove their own admin role
-- assets with an active assignment cannot be deleted
-- admins assign assets to regular users and cannot assign assets to themselves
+- Admins cannot delete their own account or remove their own admin role.
+- The last admin cannot be deleted or lose the admin role.
+- Assets with an active assignment cannot be deleted.
+- Admins can assign assets only to regular users.
+
+## Tests and CI
+
+```mermaid
+---
+title: CI pipeline
+---
+%%{init: {"flowchart": {"nodeSpacing": 20}}}%%
+flowchart LR
+    T["Push to main or PR"] --> B1
+    T --> F1
+    subgraph Backend
+        B1["Restore"] --> B2["Build"] --> B3["Unit + integration tests"]
+    end
+    subgraph Frontend
+        F1["npm ci"] --> F2["Lint, 0 warnings"] --> F3["Typecheck"] --> F4["Tests"] --> F5["Build"]
+    end
+```
+
+The CI pipeline runs three groups of tests:
+
+- **Backend, 30 unit tests (xUnit).** Mostly controller-level tests using an in-memory EF Core database. They cover auth rules, the equipment and checkout lifecycles, user management edge cases such as last-admin protection, the JWT key check, and the upload folder setting.
+- **Backend, 3 integration tests.** Full HTTP tests against a real PostgreSQL container via Testcontainers. They cover the concurrent checkout race, the duplicate-registration race, and token invalidation on password change.
+- **Frontend, 25 Vitest tests.** They cover API error and message mapping, the success and error message component, the asset form, the page `lang` attribute, and the English and Hungarian texts (same keys, no empty texts). The component tests use Testing Library.
+
+## Getting started
+
+You need Docker Desktop (or Docker Engine with Compose). All settings are documented in [.env.example](./.env.example).
+
+```sh
+# create .env from the example with a random JWT key
+sed "s|^JWT_KEY=.*|JWT_KEY=$(openssl rand -base64 48)|" .env.example > .env
+
+# build and start the app in development mode
+docker compose up --build -d
+```
+
+Open `http://localhost:5173`. In development mode, the app starts with an empty database and a bootstrap admin account:
+
+- email: `admin@assetmanagement.local`
+- password: `Admin123!`
+
+To run the app with sample data, start the demo mode with `docker compose -f compose.demo.yaml up --build -d` and open `http://localhost:5174`.
 
 ## Known limitations
 
-This is a portfolio project, so some production decisions are intentionally simple. These are the trade-offs I know about and the direction I would take next:
+Some production decisions in this portfolio project are kept simple on purpose. These are the trade-offs I know about and the direction I would take next:
 
 | Current state | Production direction |
 | --- | --- |
 | JWT stored in browser `localStorage` | Secure `HttpOnly` cookies |
 | Two fixed roles (admin, user) | Policy-based authorization for finer permissions |
-| Deleting a user or an asset also deletes its assignment history | Deactivate users and archive assets instead, so the history is kept |
+| Deleting a user or an asset also deletes its assignment history | Deactivate users and archive assets, and keep their history |
 | IP-based login rate limiting | Add per-account lockout rules |
-| EF Core migrations run on startup | Separate migration step in deployment, with backups |
-| Uploads stored on a Docker volume | Object storage with scanning and backups |
-| Secrets come from local environment variables | Secret manager in deployed environments |
-| No HTTPS or real domain in the local setup | TLS, domain routing, certificate renewal |
+| EF Core migrations run on startup | A separate migration step in the CD workflow, with database backups |
+| Uploads stored on the API server's disk | Object storage with scanning and backups |
+| Secrets are environment variables (`.env` locally, App Service settings in the demo) | A secret manager, such as Azure Key Vault |
 | Unit tests plus API integration tests | Frontend end-to-end coverage |
 | No monitoring | Structured logs, health checks, metrics, error tracking |
 
