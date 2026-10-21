@@ -22,22 +22,11 @@ A few things to know:
 - The demo runs on free tiers. After some idle time, the first request can take a few seconds while the server wakes up.
 - If the free daily limits are used up, the API is unavailable until midnight UTC.
 
-| Login | Inventory |
-| --- | --- |
-| ![Login page](./docs/screenshots/v3/login.png) | ![Inventory page](./docs/screenshots/v3/inventory.png) |
+This is what it looks like:
 
-<details>
-<summary>More pages</summary>
+![Login page](./docs/screenshots/login.png)
 
-![Asset details page](./docs/screenshots/v3/asset_details.png)
-
-![User management page](./docs/screenshots/v3/users.png)
-
-![User details page](./docs/screenshots/v3/user_details.png)
-
-![Profile page](./docs/screenshots/v3/account.png)
-
-</details>
+![Inventory page](./docs/screenshots/inventory.png)
 
 ## Features
 
