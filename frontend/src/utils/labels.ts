@@ -25,7 +25,7 @@ export function getStatusLabel(status: EquipmentStatus | string, language: Langu
     en: {
       Available: 'Available',
       CheckedOut: 'Checked out',
-      Maintenance: 'Maintenance',
+      Maintenance: 'In maintenance',
     },
   } as const
 

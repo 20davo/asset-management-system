@@ -264,6 +264,7 @@ export const hu = {
       showLess: 'Kevesebb',
       checkoutSuccess: 'Az eszköz ki lett adva.',
       checkoutError: 'Nem sikerült kiadni az eszközt.',
+      assignError: 'Nem sikerült kiadni az eszközt.',
       returnSuccess: 'A leadás rögzítve.',
       returnError: 'Nem sikerült rögzíteni a leadást.',
       maintenanceSuccess: 'Az eszköz karbantartásra került.',

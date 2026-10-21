@@ -48,9 +48,9 @@ A few things to know:
 - List settings (search, filters, sorting, and view) persist after page refresh and can be shared via URL
 - Checkout and return process with due dates and notes, plus assignment history
 - Admin tools for creating, editing, deleting assets, and setting maintenance status
-- An Assignment log page for admins
+- An Assignments page for admins
 - User management for admins, including data and role editing
-- A personal My Items page for users
+- A personal My Assets page for users
 - Password change on the Profile page
 - Asset image uploads via create/edit forms
 - Settings for language (English and Hungarian) and theme (light and dark)

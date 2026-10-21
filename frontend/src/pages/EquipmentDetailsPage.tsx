@@ -178,7 +178,13 @@ function EquipmentDetailsPage() {
 
       await loadEquipmentDetails()
     } catch (error: unknown) {
-      setErrorMessage(getApiErrorMessage(error, t.details.checkoutError, language))
+      setErrorMessage(
+        getApiErrorMessage(
+          error,
+          isAdminUser ? t.details.assignError : t.details.checkoutError,
+          language,
+        ),
+      )
     } finally {
       setIsSubmitting(false)
     }
